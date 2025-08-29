@@ -1,53 +1,36 @@
-# Nuad Dee
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Nuad Dee website for AIS Jump Hackathon
+## Getting Started
 
-### 🎯 Purpose of the Website
+First, run the development server:
 
-- Promote and support **employment of visually impaired masseurs** (“หมอนวดตาบอด”).
-- Act as a platform for **training, matching, and service booking** between customers and blind massage therapists.
-- Communicate the **social impact**, legal incentives, and benefits for businesses that hire people with disabilities.
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
----
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-### 📌 Website Requirements
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-#### 1. **Training & Education Module**
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-- Provide **online learning content** (theory + practice) for blind masseurs.
-- Integrate **image processing/AI technology** to analyze massage posture and give corrective feedback.
-- Allow trainers to remotely **monitor and support trainees**.
+## Learn More
 
-#### 2. **Booking & Service Platform**
+To learn more about Next.js, take a look at the following resources:
 
-- Customers can **search for and book massage services**.
-- Highlight **therapist skills and certifications**.
-- Location-based search (e.g., “near my office” for convenience).
-- Ensure **affordable pricing + quality guarantee**.
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-#### 3. **Management & Monitoring System**
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-- For trainers: track each trainee’s **progress, posture data, performance history**.
-- For businesses: manage **therapist schedules, service quality, and customer feedback**.
+## Deploy on Vercel
 
-#### 4. **Partnership & Recruitment**
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-- Showcase partnerships with organizations/centers that train or support visually impaired people.
-- Allow recruitment flow: **register → train → become service provider**.
-
-#### 5. **Impact & Compliance Section**
-
-- Show measurable **impact metrics** (e.g., jobs created: target 7,000 in 3 years).
-- Explain **legal and tax benefits** for companies hiring people with disabilities (ตาม พ.ร.บ. 2550).
-- Promote SDG alignment (employment, inclusion, well-being).
-
-#### 6. **User Personas & Experience**
-
-- Example persona: “พี่พรชัย” (40 y/o accountant, 40k income, seeks affordable, quality massage near office).
-- Website UX must focus on **convenience, trust, and service quality proof**.
-
-#### 7. **Other Requirements**
-
-- Accessibility features (for blind users as well as customers).
-- Multilingual support (Thai + English).
-- Clear storytelling: business opportunity (demand > supply), social mission, and solutions.
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
