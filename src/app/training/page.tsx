@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { mockTrainingModules, User } from "@/utils/mockData";
 import { getFromLocalStorage, setToLocalStorage } from "@/utils/localStorage";
 
@@ -9,6 +9,42 @@ export default function TrainingPage() {
   const [activeModule, setActiveModule] = useState(mockTrainingModules[0]);
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [postureFeedback, setPostureFeedback] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [analysisResults, setAnalysisResults] = useState<string[]>([]);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(
+    null
+  );
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Initialize camera
+  useEffect(() => {
+    async function setupCamera() {
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+        setStream(mediaStream);
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+      } catch (err) {
+        console.error("Error accessing camera:", err);
+        alert("Please allow camera access to use this feature");
+      }
+    }
+    setupCamera();
+
+    // Cleanup
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const user = getFromLocalStorage("currentUser");
@@ -34,6 +70,89 @@ export default function TrainingPage() {
     setToLocalStorage(`trainee_progress_${currentUser.id}`, {
       completedLessons: newCompletedLessons,
     });
+  };
+
+  const startRecording = () => {
+    if (!stream) return;
+
+    setIsRecording(true);
+    setRecordingTime(0);
+    setShowAnalysis(false);
+    setAnalysisResults([]);
+
+    const recorder = new MediaRecorder(stream);
+    setMediaRecorder(recorder);
+
+    recorder.start();
+
+    const timer = setInterval(() => {
+      setRecordingTime((prev) => {
+        if (prev >= 10) {
+          clearInterval(timer);
+          stopRecording();
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+  };
+
+  const stopRecording = () => {
+    if (!mediaRecorder || !stream) return;
+
+    setIsRecording(false);
+    mediaRecorder.stop();
+
+    // Stop all tracks in the stream
+    stream.getTracks().forEach((track) => track.stop());
+    setStream(null);
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    analyzeRecording();
+  };
+
+  const analyzeRecording = () => {
+    // Mock AI analysis results
+    const mockAnalysis = [
+      {
+        timestamp: "0:02",
+        feedback: "✅ Good starting position",
+        confidence: 0.92,
+      },
+      {
+        timestamp: "0:04",
+        feedback: "⚠️ Adjust hand pressure - too strong",
+        confidence: 0.85,
+      },
+      {
+        timestamp: "0:06",
+        feedback: "✅ Excellent flowing movement",
+        confidence: 0.95,
+      },
+      {
+        timestamp: "0:08",
+        feedback: "⚠️ Maintain straight back posture",
+        confidence: 0.88,
+      },
+      {
+        timestamp: "0:10",
+        feedback: "✅ Good rhythm and technique",
+        confidence: 0.9,
+      },
+    ];
+
+    const results = mockAnalysis.map(
+      (a) =>
+        `[${a.timestamp}] ${a.feedback} (Confidence: ${Math.round(
+          a.confidence * 100
+        )}%)`
+    );
+
+    setAnalysisResults(results);
+    setShowAnalysis(true);
   };
 
   const simulatePostureAnalysis = () => {
@@ -137,16 +256,95 @@ export default function TrainingPage() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <div className="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg flex items-center justify-center">
-                          <span className="text-gray-500">
-                            Interactive Exercise Area
-                          </span>
+                        {/* Camera View */}
+                        <div className="relative">
+                          <div className="aspect-w-16 aspect-h-9 bg-gray-900 rounded-lg overflow-hidden">
+                            <video
+                              ref={videoRef}
+                              autoPlay
+                              playsInline
+                              muted
+                              className="w-full h-full object-cover"
+                            />
+                            {isRecording && (
+                              <div className="absolute top-4 right-4 flex items-center gap-2">
+                                <div className="w-4 h-4 bg-red-600 rounded-full animate-pulse"></div>
+                                <span className="text-white font-mono bg-black/50 px-2 py-1 rounded">
+                                  Recording: {recordingTime}s
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Camera Controls */}
+                          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+                            {!showAnalysis && (
+                              <button
+                                onClick={
+                                  isRecording ? stopRecording : startRecording
+                                }
+                                className={`${
+                                  isRecording ? "bg-yellow-500" : "bg-red-600"
+                                } text-white px-6 py-2 rounded-full hover:${
+                                  isRecording ? "bg-yellow-600" : "bg-red-700"
+                                } flex items-center gap-2`}
+                              >
+                                <span className="w-2 h-2 bg-white rounded-full"></span>
+                                {isRecording
+                                  ? "Stop Recording"
+                                  : "Start Recording"}
+                              </button>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Analysis Area */}
+                        {showAnalysis && (
+                          <div className="bg-white border rounded-lg p-4">
+                            <h4 className="font-semibold text-lg mb-3">
+                              Movement Analysis
+                            </h4>
+                            <div className="space-y-2">
+                              {analysisResults.map((result, index) => (
+                                <div
+                                  key={index}
+                                  className={`p-2 rounded ${
+                                    result.includes("✅")
+                                      ? "bg-green-50 text-green-700"
+                                      : "bg-yellow-50 text-yellow-700"
+                                  }`}
+                                >
+                                  {result}
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-6 flex justify-between">
+                              <button
+                                onClick={startRecording}
+                                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                              >
+                                Record Again
+                              </button>
+                              <button
+                                onClick={() => {
+                                  alert(
+                                    "Video saved to your progress records!"
+                                  );
+                                }}
+                                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                              >
+                                Save to Progress
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Traditional Posture Analysis */}
                         <button
                           onClick={simulatePostureAnalysis}
                           className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
                         >
-                          Analyze Posture
+                          Quick Posture Check
                         </button>
                         {postureFeedback && (
                           <div className="mt-4 p-4 bg-gray-50 rounded-lg">
