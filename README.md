@@ -1,73 +1,98 @@
-# Welcome to your Lovable project
+1. Project Goal & Purpose 🎯
+   The primary goal remains to create a web platform that promotes and facilitates the employment of visually impaired masseurs. The website will serve as a comprehensive ecosystem for training, service booking, and showcasing social impact, connecting masseurs, customers, and partner businesses.
 
-## Project info
+2. Core Functional Requirements ⚙️
+   The website must be a hybrid platform combining an e-learning system, a service booking marketplace, and a social impact portal with simulated user roles.
 
-**URL**: https://lovable.dev/projects/fc921ec1-f2f6-4be4-a57f-204645265073
+2.1. Training & Education Module (Revised & Expanded)
+This module will provide a complete, interactive e-learning experience.
 
-## How can I edit this code?
+User Flow for Trainees:
 
-There are several ways of editing your application.
+Enrollment: A logged-in trainee browses a catalog of available massage courses and clicks "Enroll." This action associates the course with their profile.
 
-**Use Lovable**
+Dashboard: After enrolling, the trainee's personal dashboard displays their enrolled courses and a progress bar for each one.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/fc921ec1-f2f6-4be4-a57f-204645265073) and start prompting.
+Course Navigation: Clicking an enrolled course leads to a detailed page listing all its lessons and modules (e.g., "Module 1: Theory," "Module 2: Practical Posture"). Completed lessons are clearly marked.
 
-Changes made via Lovable will be committed automatically to this repo.
+Learning: The trainee clicks on a lesson to start learning.
 
-**Use your preferred IDE**
+Theory Lessons: Will display mock video content and text. A "Mark as Complete" button updates their progress.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Practical Lessons: Will lead to the Posture Analysis Feature.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Posture Analysis: On this page, the user will be prompted to "Upload Image for Analysis." This will be a mock file upload. Upon clicking "Analyze," the system will simulate processing and then return mock text feedback (e.g., "✅ Correct posture: Wrist angle is perfect" or "⚠️ Needs adjustment: Lower your shoulder").
 
-Follow these steps:
+Progress Tracking: All actions (enrollment, lesson completion) are saved to localStorage, ensuring the trainee's progress is persistent between sessions.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Booking & Service Platform: Unchanged.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Partnership & Recruitment Section: Unchanged.
 
-# Step 3: Install the necessary dependencies.
-npm i
+Social Impact & Compliance Section: Unchanged.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+3. Design, UX & Animation ✨
+   This section's goals are unchanged, focusing on a colorful, modern, and animated user interface.
 
-**Edit a file directly in GitHub**
+Aesthetic: Colorful & Modern Webpage
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Animations: Smooth & Purposeful
 
-**Use GitHub Codespaces**
+Accessibility & Multilingual Support
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+4. Next.js Frontend Implementation Plan 🚀
+   The technical plan is updated to support the detailed training module flow.
 
-## What technologies are used for this project?
+Technology Stack
 
-This project is built with:
+Framework: Next.js (App Router)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Animation Library: Framer Motion
 
-## How can I deploy this project?
+Styling: Tailwind CSS
 
-Simply open [Lovable](https://lovable.dev/projects/fc921ec1-f2f6-4be4-a57f-204645265073) and click on Share -> Publish.
+Data Storage (Revised localStorage Structure)
 
-## Can I connect a custom domain to my Lovable project?
+currentUser: Stores the session info for the logged-in user.
 
-Yes, you can!
+courses: An array of mock course objects, each containing an ID, title, description, and a nested array of lessons. Lessons will have an ID, title, and type ('theory' or 'practice').
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+traineeProgress: An object that maps userId to their course progress. Example: { "trainee_user_id": { "course_id_1": ["lesson_id_101", "lesson_id_102"] } }
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Mock Authentication Flow: Unchanged.
+
+Next.js Folder Structure (Revised for Training Module)
+
+/project-root
+│
+├── src/
+│ ├── app/
+│ │ ├── (main)/
+│ │ │ ├── training/
+│ │ │ │ ├── page.jsx # Course catalog
+│ │ │ │ └── [courseId]/
+│ │ │ │ ├── page.jsx # Course detail/lesson list
+│ │ │ │ └── [lessonId]/
+│ │ │ │ └── page.jsx # Individual lesson/posture analysis
+│ │ │ ├── dashboard/
+│ │ │ │ └── page.jsx # Trainee's dashboard
+│ │ │ └── ... (other pages: booking, about, etc.)
+│ │ │ └── layout.js
+│ │ │
+│ │ ├── login/
+│ │ │ └── page.jsx
+│ │ └── layout.js
+│ │
+│ ├── components/
+│ ├── utils/ # Helper functions, mock data (courses, users)
+│
+└── ...
+Page Breakdown and Functionalities (Updated)
+
+app/(main)/dashboard/page.jsx (Trainee Dashboard): A new, protected page for logged-in trainees. It reads from localStorage (currentUser, courses, traineeProgress) to display enrolled courses and their completion percentage.
+
+app/(main)/training/page.jsx (Course Catalog): Displays all available courses from the mock courses data. An "Enroll" button will update the traineeProgress object in localStorage.
+
+app/(main)/training/[courseId]/page.jsx (Course Detail): A dynamic page that shows the lesson list for a specific course. It will visually distinguish between completed and pending lessons based on traineeProgress.
+
+app/(main)/training/[courseId]/[lessonId]/page.jsx (Lesson Page): The core learning page. It will conditionally render either a mock video/text player (type: 'theory') or the mock Posture Analysis tool (type: 'practice').
