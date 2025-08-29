@@ -1,59 +1,65 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Heart, Mail, Lock } from 'lucide-react';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Heart, Mail, Lock } from "lucide-react";
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const { login, isLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         title: "Missing Information",
         description: "Please enter both email and password",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     const success = await login(email, password);
-    
+
     if (success) {
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in",
-        variant: "default"
+        variant: "default",
       });
-      navigate('/');
+      navigate("/");
     } else {
       toast({
         title: "Login Failed",
         description: "Invalid email or password. Try one of the demo accounts.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const demoAccounts = [
-    { email: 'sarah@example.com', role: 'Customer', avatar: '👩‍💼' },
-    { email: 'david@therapist.com', role: 'Therapist', avatar: '👨‍⚕️' },
-    { email: 'admin@healingtouch.com', role: 'Admin', avatar: '👨‍💻' }
+    { email: "sarah@example.com", role: "Customer", avatar: "👩‍💼" },
+    { email: "david@therapist.com", role: "Therapist", avatar: "👨‍⚕️" },
+    { email: "admin@nueddee.com", role: "Admin", avatar: "👨‍💻" },
   ];
 
   const quickLogin = (email: string) => {
     setEmail(email);
-    setPassword('demo123');
+    setPassword("demo123");
   };
 
   return (
@@ -69,13 +75,15 @@ const Login = () => {
             Welcome Back
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to your HealingTouch account
+            Sign in to your Nued Dee account
           </p>
         </div>
 
         <Card className="shadow-medium border-0">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Sign In</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              Sign In
+            </CardTitle>
             <CardDescription className="text-center">
               Enter your credentials to access your account
             </CardDescription>
@@ -129,7 +137,7 @@ const Login = () => {
                     Signing In...
                   </>
                 ) : (
-                  'Sign In'
+                  "Sign In"
                 )}
               </Button>
             </form>
@@ -140,7 +148,9 @@ const Login = () => {
                   <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-card text-muted-foreground">Demo Accounts</span>
+                  <span className="px-2 bg-card text-muted-foreground">
+                    Demo Accounts
+                  </span>
                 </div>
               </div>
 
@@ -156,7 +166,9 @@ const Login = () => {
                     <span className="mr-3 text-lg">{account.avatar}</span>
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{account.role}</span>
-                      <span className="text-xs text-muted-foreground">{account.email}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {account.email}
+                      </span>
                     </div>
                   </Button>
                 ))}
@@ -165,9 +177,9 @@ const Login = () => {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
-                Don't have an account?{' '}
-                <Link 
-                  to="/services" 
+                Don't have an account?{" "}
+                <Link
+                  to="/services"
                   className="font-medium text-primary hover:text-primary/80 transition-colors"
                 >
                   Book a session instead
@@ -178,8 +190,8 @@ const Login = () => {
         </Card>
 
         <div className="text-center">
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className="text-sm text-muted-foreground hover:text-primary transition-colors"
           >
             ← Back to Home

@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
-import { Menu, X, Heart, User, LogOut } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { Menu, X, Heart, User, LogOut } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,7 +25,9 @@ const Navbar = () => {
             <div className="bg-gradient-healing p-2 rounded-lg group-hover:shadow-glow transition-all duration-300">
               <Heart className="h-6 w-6 text-healing-foreground" />
             </div>
-            <span className="text-xl font-bold text-gradient-primary">HealingTouch</span>
+            <span className="text-xl font-bold text-gradient-primary">
+              Nued Dee
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -34,9 +36,9 @@ const Navbar = () => {
               <Link
                 to="/"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive('/') 
-                    ? 'bg-primary text-primary-foreground shadow-soft' 
-                    : 'text-foreground hover:bg-card-hover hover:text-primary'
+                  isActive("/")
+                    ? "bg-primary text-primary-foreground shadow-soft"
+                    : "text-foreground hover:bg-card-hover hover:text-primary"
                 }`}
               >
                 Home
@@ -44,9 +46,9 @@ const Navbar = () => {
               <Link
                 to="/services"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive('/services') 
-                    ? 'bg-primary text-primary-foreground shadow-soft' 
-                    : 'text-foreground hover:bg-card-hover hover:text-primary'
+                  isActive("/services")
+                    ? "bg-primary text-primary-foreground shadow-soft"
+                    : "text-foreground hover:bg-card-hover hover:text-primary"
                 }`}
               >
                 Services
@@ -54,9 +56,9 @@ const Navbar = () => {
               <Link
                 to="/training"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive('/training') 
-                    ? 'bg-primary text-primary-foreground shadow-soft' 
-                    : 'text-foreground hover:bg-card-hover hover:text-primary'
+                  isActive("/training")
+                    ? "bg-primary text-primary-foreground shadow-soft"
+                    : "text-foreground hover:bg-card-hover hover:text-primary"
                 }`}
               >
                 Training
@@ -65,9 +67,9 @@ const Navbar = () => {
                 <Link
                   to="/dashboard"
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isActive('/dashboard') 
-                      ? 'bg-primary text-primary-foreground shadow-soft' 
-                      : 'text-foreground hover:bg-card-hover hover:text-primary'
+                    isActive("/dashboard")
+                      ? "bg-primary text-primary-foreground shadow-soft"
+                      : "text-foreground hover:bg-card-hover hover:text-primary"
                   }`}
                 >
                   Dashboard
@@ -76,9 +78,9 @@ const Navbar = () => {
               <Link
                 to="/impact"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive('/impact') 
-                    ? 'bg-primary text-primary-foreground shadow-soft' 
-                    : 'text-foreground hover:bg-card-hover hover:text-primary'
+                  isActive("/impact")
+                    ? "bg-primary text-primary-foreground shadow-soft"
+                    : "text-foreground hover:bg-card-hover hover:text-primary"
                 }`}
               >
                 Impact
@@ -124,7 +126,11 @@ const Navbar = () => {
               onClick={() => setIsOpen(!isOpen)}
               className="inline-flex items-center justify-center p-2 rounded-lg text-foreground hover:bg-card-hover transition-colors duration-200"
             >
-              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {isOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </button>
           </div>
         </div>
@@ -137,9 +143,9 @@ const Navbar = () => {
             <Link
               to="/"
               className={`block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 ${
-                isActive('/') 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'text-foreground hover:bg-card-hover'
+                isActive("/")
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-card-hover"
               }`}
               onClick={() => setIsOpen(false)}
             >
@@ -148,9 +154,9 @@ const Navbar = () => {
             <Link
               to="/services"
               className={`block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 ${
-                isActive('/services') 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'text-foreground hover:bg-card-hover'
+                isActive("/services")
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-card-hover"
               }`}
               onClick={() => setIsOpen(false)}
             >
@@ -159,9 +165,9 @@ const Navbar = () => {
             <Link
               to="/training"
               className={`block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 ${
-                isActive('/training') 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'text-foreground hover:bg-card-hover'
+                isActive("/training")
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-card-hover"
               }`}
               onClick={() => setIsOpen(false)}
             >
@@ -171,9 +177,9 @@ const Navbar = () => {
               <Link
                 to="/dashboard"
                 className={`block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 ${
-                  isActive('/dashboard') 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'text-foreground hover:bg-card-hover'
+                  isActive("/dashboard")
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-card-hover"
                 }`}
                 onClick={() => setIsOpen(false)}
               >
@@ -183,15 +189,15 @@ const Navbar = () => {
             <Link
               to="/impact"
               className={`block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 ${
-                isActive('/impact') 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'text-foreground hover:bg-card-hover'
+                isActive("/impact")
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-card-hover"
               }`}
               onClick={() => setIsOpen(false)}
             >
               Impact
             </Link>
-            
+
             {/* Mobile user menu */}
             <div className="border-t border-border pt-4 mt-4">
               {user ? (
