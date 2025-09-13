@@ -1,98 +1,165 @@
-1. Project Goal & Purpose 🎯
-   The primary goal remains to create a web platform that promotes and facilitates the employment of visually impaired masseurs. The website will serve as a comprehensive ecosystem for training, service booking, and showcasing social impact, connecting masseurs, customers, and partner businesses.
+# Nuad Dee - Massage Training Platform
 
-2. Core Functional Requirements ⚙️
-   The website must be a hybrid platform combining an e-learning system, a service booking marketplace, and a social impact portal with simulated user roles.
+A comprehensive web platform that promotes and facilitates the employment of visually impaired masseurs. The website serves as a complete ecosystem for training, service booking, and showcasing social impact, connecting masseurs, customers, and partner businesses.
 
-2.1. Training & Education Module (Revised & Expanded)
-This module will provide a complete, interactive e-learning experience.
+## 🚀 Technology Stack
 
-User Flow for Trainees:
+- **Framework**: Next.js 15 with App Router
+- **Runtime**: Bun
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn/ui
+- **Animation**: Framer Motion (ready to integrate)
+- **Language**: TypeScript
 
-Enrollment: A logged-in trainee browses a catalog of available massage courses and clicks "Enroll." This action associates the course with their profile.
+## ✨ Features
 
-Dashboard: After enrolling, the trainee's personal dashboard displays their enrolled courses and a progress bar for each one.
+### Training & Education Module
 
-Course Navigation: Clicking an enrolled course leads to a detailed page listing all its lessons and modules (e.g., "Module 1: Theory," "Module 2: Practical Posture"). Completed lessons are clearly marked.
+- Interactive e-learning experience
+- Course enrollment and progress tracking
+- Theory lessons with mock video content
+- Practical lessons with posture analysis
+- Adaptive learning techniques for visually impaired learners
 
-Learning: The trainee clicks on a lesson to start learning.
+### Service Booking Platform
 
-Theory Lessons: Will display mock video content and text. A "Mark as Complete" button updates their progress.
+- Professional massage therapy services
+- Therapist profiles and specialties
+- Booking system with availability
+- Corporate wellness programs
+- Home visit services
 
-Practical Lessons: Will lead to the Posture Analysis Feature.
+### Social Impact Portal
 
-Posture Analysis: On this page, the user will be prompted to "Upload Image for Analysis." This will be a mock file upload. Upon clicking "Analyze," the system will simulate processing and then return mock text feedback (e.g., "✅ Correct posture: Wrist angle is perfect" or "⚠️ Needs adjustment: Lower your shoulder").
+- Success stories and testimonials
+- Impact metrics and statistics
+- Partner network showcase
+- Community outreach programs
 
-Progress Tracking: All actions (enrollment, lesson completion) are saved to localStorage, ensuring the trainee's progress is persistent between sessions.
+## 🛠️ Getting Started
 
-Booking & Service Platform: Unchanged.
+### Prerequisites
 
-Partnership & Recruitment Section: Unchanged.
+- [Bun](https://bun.sh/) installed on your system
 
-Social Impact & Compliance Section: Unchanged.
+### Installation
 
-3. Design, UX & Animation ✨
-   This section's goals are unchanged, focusing on a colorful, modern, and animated user interface.
+1. Clone the repository:
 
-Aesthetic: Colorful & Modern Webpage
+```bash
+git clone <repository-url>
+cd nuad-dee
+```
 
-Animations: Smooth & Purposeful
+2. Install dependencies:
 
-Accessibility & Multilingual Support
+```bash
+bun install
+```
 
-4. Next.js Frontend Implementation Plan 🚀
-   The technical plan is updated to support the detailed training module flow.
+3. Run the development server:
 
-Technology Stack
+```bash
+bun dev
+```
 
-Framework: Next.js (App Router)
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Animation Library: Framer Motion
+## 📁 Project Structure
 
-Styling: Tailwind CSS
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── dashboard/         # User dashboard
+│   ├── impact/           # Social impact page
+│   ├── login/            # Authentication
+│   ├── services/         # Service booking
+│   ├── training/         # Training courses
+│   │   ├── [courseId]/   # Dynamic course pages
+│   │   └── [lessonId]/   # Dynamic lesson pages
+│   ├── globals.css       # Global styles
+│   ├── layout.tsx        # Root layout
+│   └── page.tsx          # Home page
+├── components/           # Reusable components
+│   ├── ui/              # shadcn/ui components
+│   └── Navbar.tsx       # Navigation component
+├── hooks/               # Custom React hooks
+│   └── useAuth.ts       # Authentication logic
+├── lib/                 # Utility functions
+└── assets/              # Static assets
+```
 
-Data Storage (Revised localStorage Structure)
+## 🎯 Key Features
 
-currentUser: Stores the session info for the logged-in user.
+### Mock Authentication
 
-courses: An array of mock course objects, each containing an ID, title, description, and a nested array of lessons. Lessons will have an ID, title, and type ('theory' or 'practice').
+- Demo accounts available for testing
+- Role-based access (Customer, Therapist, Admin)
+- Persistent login state with localStorage
 
-traineeProgress: An object that maps userId to their course progress. Example: { "trainee_user_id": { "course_id_1": ["lesson_id_101", "lesson_id_102"] } }
+### Course Management
 
-Mock Authentication Flow: Unchanged.
+- Dynamic course creation and enrollment
+- Progress tracking with localStorage
+- Theory and practical lesson types
+- Posture analysis simulation
 
-Next.js Folder Structure (Revised for Training Module)
+### Responsive Design
 
-/project-root
-│
-├── src/
-│ ├── app/
-│ │ ├── (main)/
-│ │ │ ├── training/
-│ │ │ │ ├── page.jsx # Course catalog
-│ │ │ │ └── [courseId]/
-│ │ │ │ ├── page.jsx # Course detail/lesson list
-│ │ │ │ └── [lessonId]/
-│ │ │ │ └── page.jsx # Individual lesson/posture analysis
-│ │ │ ├── dashboard/
-│ │ │ │ └── page.jsx # Trainee's dashboard
-│ │ │ └── ... (other pages: booking, about, etc.)
-│ │ │ └── layout.js
-│ │ │
-│ │ ├── login/
-│ │ │ └── page.jsx
-│ │ └── layout.js
-│ │
-│ ├── components/
-│ ├── utils/ # Helper functions, mock data (courses, users)
-│
-└── ...
-Page Breakdown and Functionalities (Updated)
+- Mobile-first approach
+- Accessible design patterns
+- Smooth animations and transitions
+- Modern UI with Tailwind CSS
 
-app/(main)/dashboard/page.jsx (Trainee Dashboard): A new, protected page for logged-in trainees. It reads from localStorage (currentUser, courses, traineeProgress) to display enrolled courses and their completion percentage.
+## 🔧 Available Scripts
 
-app/(main)/training/page.jsx (Course Catalog): Displays all available courses from the mock courses data. An "Enroll" button will update the traineeProgress object in localStorage.
+- `bun dev` - Start development server
+- `bun build` - Build for production
+- `bun start` - Start production server
+- `bun lint` - Run ESLint
 
-app/(main)/training/[courseId]/page.jsx (Course Detail): A dynamic page that shows the lesson list for a specific course. It will visually distinguish between completed and pending lessons based on traineeProgress.
+## 🌟 Demo Accounts
 
-app/(main)/training/[courseId]/[lessonId]/page.jsx (Lesson Page): The core learning page. It will conditionally render either a mock video/text player (type: 'theory') or the mock Posture Analysis tool (type: 'practice').
+For testing purposes, use these demo accounts:
+
+- **Customer**: sarah@example.com (password: demo123)
+- **Therapist**: david@therapist.com (password: demo123)
+- **Admin**: admin@nueddee.com (password: demo123)
+
+## 📱 Pages
+
+- **Home** (`/`) - Landing page with hero section and features
+- **Services** (`/services`) - Therapist directory and booking
+- **Training** (`/training`) - Course catalog and enrollment
+- **Dashboard** (`/dashboard`) - User progress and enrolled courses
+- **Impact** (`/impact`) - Social impact metrics and stories
+- **Login** (`/login`) - Authentication page
+
+## 🎨 Design System
+
+The platform uses a custom design system with:
+
+- Healing-focused color palette
+- Accessible contrast ratios
+- Smooth animations and micro-interactions
+- Responsive grid layouts
+- Modern typography
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🙏 Acknowledgments
+
+- Built with Next.js and the App Router
+- UI components from shadcn/ui
+- Icons from Lucide React
+- Styling with Tailwind CSS
