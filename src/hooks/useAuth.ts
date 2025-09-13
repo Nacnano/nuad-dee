@@ -1,4 +1,6 @@
-import { useState, useEffect, createContext, useContext } from "react";
+"use client";
+
+import React, { useState, useEffect, createContext, useContext } from "react";
 
 // Mock user data
 export interface User {
@@ -102,4 +104,14 @@ export function useAuthProvider() {
     logout,
     isLoading,
   };
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const authValue = useAuthProvider();
+
+  return React.createElement(
+    AuthContext.Provider,
+    { value: authValue },
+    children
+  );
 }
