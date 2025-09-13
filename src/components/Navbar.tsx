@@ -1,15 +1,18 @@
+"use client";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Menu, X, Heart, User, LogOut } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = useAuth();
-  const location = useLocation();
+  const pathname = usePathname();
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => pathname === path;
 
   const handleLogout = () => {
     logout();
@@ -21,7 +24,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
+          <Link href="/" className="flex items-center space-x-2 group">
             <div className="bg-gradient-healing p-2 rounded-lg group-hover:shadow-glow transition-all duration-300">
               <Heart className="h-6 w-6 text-healing-foreground" />
             </div>
@@ -34,7 +37,7 @@ const Navbar = () => {
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
               <Link
-                to="/"
+                href="/"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive("/")
                     ? "bg-primary text-primary-foreground shadow-soft"
@@ -44,7 +47,7 @@ const Navbar = () => {
                 Home
               </Link>
               <Link
-                to="/services"
+                href="/services"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive("/services")
                     ? "bg-primary text-primary-foreground shadow-soft"
@@ -54,7 +57,7 @@ const Navbar = () => {
                 Services
               </Link>
               <Link
-                to="/training"
+                href="/training"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive("/training")
                     ? "bg-primary text-primary-foreground shadow-soft"
@@ -65,7 +68,7 @@ const Navbar = () => {
               </Link>
               {user && (
                 <Link
-                  to="/dashboard"
+                  href="/dashboard"
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive("/dashboard")
                       ? "bg-primary text-primary-foreground shadow-soft"
@@ -76,7 +79,7 @@ const Navbar = () => {
                 </Link>
               )}
               <Link
-                to="/impact"
+                href="/impact"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive("/impact")
                     ? "bg-primary text-primary-foreground shadow-soft"
@@ -108,13 +111,13 @@ const Navbar = () => {
             ) : (
               <div className="flex items-center space-x-2">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link to="/login">
+                  <Link href="/login">
                     <User className="h-4 w-4 mr-1" />
                     Login
                   </Link>
                 </Button>
                 <Button size="sm" className="btn-healing">
-                  <Link to="/services">Book Now</Link>
+                  <Link href="/services">Book Now</Link>
                 </Button>
               </div>
             )}
@@ -141,7 +144,7 @@ const Navbar = () => {
         <div className="md:hidden bg-background border-t border-border">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link
-              to="/"
+              href="/"
               className={`block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 ${
                 isActive("/")
                   ? "bg-primary text-primary-foreground"
@@ -152,7 +155,7 @@ const Navbar = () => {
               Home
             </Link>
             <Link
-              to="/services"
+              href="/services"
               className={`block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 ${
                 isActive("/services")
                   ? "bg-primary text-primary-foreground"
@@ -163,7 +166,7 @@ const Navbar = () => {
               Services
             </Link>
             <Link
-              to="/training"
+              href="/training"
               className={`block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 ${
                 isActive("/training")
                   ? "bg-primary text-primary-foreground"
@@ -175,7 +178,7 @@ const Navbar = () => {
             </Link>
             {user && (
               <Link
-                to="/dashboard"
+                href="/dashboard"
                 className={`block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 ${
                   isActive("/dashboard")
                     ? "bg-primary text-primary-foreground"
@@ -187,7 +190,7 @@ const Navbar = () => {
               </Link>
             )}
             <Link
-              to="/impact"
+              href="/impact"
               className={`block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 ${
                 isActive("/impact")
                   ? "bg-primary text-primary-foreground"
@@ -216,7 +219,7 @@ const Navbar = () => {
               ) : (
                 <div className="space-y-2">
                   <Link
-                    to="/login"
+                    href="/login"
                     className="block px-3 py-2 rounded-lg text-base font-medium text-foreground hover:bg-card-hover transition-all duration-200"
                     onClick={() => setIsOpen(false)}
                   >
@@ -224,7 +227,7 @@ const Navbar = () => {
                     Login
                   </Link>
                   <Link
-                    to="/services"
+                    href="/services"
                     className="block px-3 py-2 rounded-lg text-base font-medium bg-healing text-healing-foreground text-center"
                     onClick={() => setIsOpen(false)}
                   >
