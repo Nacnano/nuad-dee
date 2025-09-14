@@ -18,7 +18,7 @@ A comprehensive web platform that promotes and facilitates the employment of vis
 - Interactive e-learning experience
 - Course enrollment and progress tracking
 - Theory lessons with mock video content
-- Practical lessons with posture analysis
+- Practical lessons with real-time posture analysis
 - Adaptive learning techniques for visually impaired learners
 
 ### Service Booking Platform

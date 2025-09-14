@@ -11,20 +11,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   CheckCircle,
   PlayCircle,
-  Upload,
-  Camera,
   AlertCircle,
   FileText,
   Eye,
-  Loader2,
 } from "lucide-react";
+import RealtimePostureAnalysis from "@/components/RealtimePostureAnalysis";
 
 interface Lesson {
   id: string;
@@ -57,9 +54,6 @@ export default function LessonDetailPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<string>("");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -121,55 +115,6 @@ export default function LessonDetailPage() {
         description: "Great job! Keep up the good work.",
         variant: "default",
       });
-    }
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.type.startsWith("image/")) {
-        setUploadedFile(file);
-        setAnalysisResult("");
-      } else {
-        toast({
-          title: "Invalid File Type",
-          description: "Please upload an image file.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const analyzePosture = async () => {
-    if (!uploadedFile) return;
-
-    setIsAnalyzing(true);
-
-    // Simulate analysis delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Mock analysis results
-    const mockResults = [
-      "✅ Excellent posture: Your wrist angle is perfect at 15 degrees, allowing for optimal pressure distribution.",
-      "⚠️ Minor adjustment needed: Consider lowering your shoulder by 2-3 cm to reduce tension and improve comfort.",
-      "✅ Great hand positioning: Your fingers are properly curved, which will help prevent strain during longer sessions.",
-      "⚠️ Posture tip: Keep your back straight and engage your core muscles to maintain stability.",
-      "✅ Perfect stance: Your foot positioning provides excellent balance and power transfer.",
-    ];
-
-    const randomResults = mockResults
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 3)
-      .join("\n\n");
-
-    setAnalysisResult(randomResults);
-    setIsAnalyzing(false);
-
-    // Automatically mark practical lessons as complete after analysis
-    if (lesson?.type === "practice") {
-      setTimeout(() => {
-        markAsComplete();
-      }, 1000);
     }
   };
 
@@ -246,10 +191,10 @@ export default function LessonDetailPage() {
         <CardHeader>
           <CardTitle className="flex items-center text-gradient-healing">
             <Eye className="h-5 w-5 mr-2" />
-            Posture Analysis
+            Real-time Posture Analysis
           </CardTitle>
           <CardDescription>
-            Upload an image of your massage posture for AI-powered feedback
+            Use your camera for real-time posture detection and feedback
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -258,85 +203,37 @@ export default function LessonDetailPage() {
             <ul className="text-sm text-muted-foreground space-y-1">
               <li>• Position yourself in your massage stance</li>
               <li>• Ensure good lighting and clear visibility</li>
-              <li>• Upload a side-view photo for best analysis</li>
-              <li>• Our AI will analyze your posture and provide feedback</li>
+              <li>• Stand facing the camera with your full torso visible</li>
+              <li>• Our AI will analyze your posture in real-time</li>
+              <li>• Adjust your posture based on live feedback</li>
             </ul>
           </div>
         </CardContent>
       </Card>
 
-      {/* File Upload */}
-      <Card className="border-0 shadow-soft">
-        <CardContent className="p-6">
-          <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="posture-upload"
-            />
-            <label htmlFor="posture-upload" className="cursor-pointer">
-              <Camera className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2">
-                {uploadedFile ? uploadedFile.name : "Upload Posture Image"}
-              </p>
-              <p className="text-sm text-muted-foreground mb-4">
-                Click to browse or drag and drop your image here
-              </p>
-              <Button variant="outline">
-                <Upload className="h-4 w-4 mr-2" />
-                Choose Image
-              </Button>
-            </label>
-          </div>
+      {/* Real-time Posture Analysis Component */}
+      <RealtimePostureAnalysis />
 
-          {uploadedFile && (
-            <div className="mt-4 text-center">
-              <Button
-                onClick={analyzePosture}
-                disabled={isAnalyzing}
-                className="btn-healing"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  "Analyze Posture"
-                )}
-              </Button>
+      {/* Auto-completion notice */}
+      <Card className="border-0 shadow-soft">
+        <CardContent className="p-4">
+          <div className="bg-healing/10 border border-healing/20 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="h-5 w-5 text-healing mt-0.5" />
+              <div>
+                <h4 className="font-medium text-healing mb-1">
+                  Auto-completion
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  This practical lesson will be automatically marked as complete
+                  once you achieve a posture score of 80% or higher during
+                  real-time analysis.
+                </p>
+              </div>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
-
-      {/* Analysis Results */}
-      {analysisResult && (
-        <Card className="border-0 shadow-medium">
-          <CardHeader>
-            <CardTitle className="flex items-center text-gradient-success">
-              <AlertCircle className="h-5 w-5 mr-2" />
-              Posture Analysis Results
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={analysisResult}
-              readOnly
-              className="min-h-[120px] bg-background-secondary border-0"
-            />
-
-            <div className="mt-4 p-4 bg-success/10 border border-success/20 rounded-lg">
-              <p className="text-sm text-success font-medium">
-                Analysis complete! Review the feedback above and continue
-                practicing.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Navigation */}
       <div className="flex justify-between items-center">
@@ -353,6 +250,12 @@ export default function LessonDetailPage() {
             <CheckCircle className="h-4 w-4 mr-2" />
             Completed
           </Badge>
+        )}
+
+        {!isCompleted && (
+          <Button onClick={markAsComplete} className="btn-healing">
+            Mark as Complete
+          </Button>
         )}
       </div>
     </div>
