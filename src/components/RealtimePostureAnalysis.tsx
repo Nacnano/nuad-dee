@@ -477,7 +477,7 @@ const RealtimePostureAnalysis: React.FC = () => {
                   <Camera className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p>Camera feed will appear here</p>
                   <p className="text-sm opacity-75 mt-2">
-                    Click "Start Camera" to begin
+                    Click &quot;Start Camera&quot; to begin
                   </p>
                 </div>
               </div>
