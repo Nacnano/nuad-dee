@@ -247,7 +247,7 @@ export default function ImpactPage() {
                 </CardHeader>
                 <CardContent>
                   <blockquote className="text-muted-foreground italic mb-4 leading-relaxed">
-                    "{testimonial.quote}"
+                    &ldquo;{testimonial.quote}&rdquo;
                   </blockquote>
                   <div className="bg-gradient-healing p-3 rounded-lg">
                     <div className="text-sm text-healing-foreground">
@@ -363,9 +363,9 @@ export default function ImpactPage() {
           <CardContent className="p-8 text-center">
             <h3 className="text-3xl font-bold mb-4">Join Our Impact</h3>
             <p className="text-xl mb-6 opacity-90 max-w-2xl mx-auto">
-              Whether you're looking to start your career, hire skilled
-              therapists, or support our mission, there's a place for you in our
-              community.
+              Whether you&apos;re looking to start your career, hire skilled
+              therapists, or support our mission, there&apos;s a place for you
+              in our community.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button

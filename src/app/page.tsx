@@ -279,7 +279,7 @@ export default function HomePage() {
                     ))}
                   </div>
                   <p className="text-muted-foreground mb-6 leading-relaxed italic">
-                    "{testimonial.content}"
+                    &ldquo;{testimonial.content}&rdquo;
                   </p>
                   <div className="flex items-center space-x-3">
                     <span className="text-2xl">{testimonial.avatar}</span>
