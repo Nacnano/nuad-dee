@@ -1,4 +1,4 @@
-# Nuad Dee - Massage Training Platform
+# Eye Touch - Massage Training Platform
 
 A comprehensive web platform that promotes and facilitates the employment of visually impaired masseurs. The website serves as a complete ecosystem for training, service booking, and showcasing social impact, connecting masseurs, customers, and partner businesses.
 
@@ -124,7 +124,7 @@ For testing purposes, use these demo accounts:
 
 - **Customer**: sarah@example.com (password: demo123)
 - **Therapist**: david@therapist.com (password: demo123)
-- **Admin**: admin@nuaddee.com (password: demo123)
+- **Admin**: admin@eyetouch.com (password: demo123)
 
 ## 📱 Pages
 

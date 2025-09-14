@@ -29,7 +29,7 @@ const Navbar = () => {
               <Heart className="h-6 w-6 text-healing-foreground" />
             </div>
             <span className="text-xl font-bold text-gradient-primary">
-              Nuad Dee
+              Eye Touch
             </span>
           </Link>
 

@@ -7,7 +7,7 @@ import Navbar from "@/components/Navbar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Nuad Dee - Massage Training Platform",
+  title: "Eye Touch - Massage Training Platform",
   description:
     "A comprehensive platform for training visually impaired masseurs",
 };

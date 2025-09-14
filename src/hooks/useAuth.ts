@@ -30,7 +30,7 @@ const mockUsers: User[] = [
   {
     id: "3",
     name: "Admin User",
-    email: "admin@nuaddee.com",
+    email: "admin@eyetouch.com",
     role: "admin",
     avatar: "👨‍💻",
   },

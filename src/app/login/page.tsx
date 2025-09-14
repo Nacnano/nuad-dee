@@ -57,7 +57,7 @@ export default function LoginPage() {
   const demoAccounts = [
     { email: "sarah@example.com", role: "Customer", avatar: "👩‍💼" },
     { email: "david@therapist.com", role: "Therapist", avatar: "👨‍⚕️" },
-    { email: "admin@nuaddee.com", role: "Admin", avatar: "👨‍💻" },
+    { email: "admin@eyetouch.com", role: "Admin", avatar: "👨‍💻" },
   ];
 
   const quickLogin = (email: string) => {
@@ -78,7 +78,7 @@ export default function LoginPage() {
             Welcome Back
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to your Nuad Dee account
+            Sign in to your Eye Touch account
           </p>
         </div>
 
