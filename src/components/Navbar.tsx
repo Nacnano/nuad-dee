@@ -25,9 +25,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
-            <div className="bg-gradient-healing p-2 rounded-lg group-hover:shadow-glow transition-all duration-300">
-              <Heart className="h-6 w-6 text-healing-foreground" />
-            </div>
+            <img src="/favicon.ico" alt="Eye Touch Logo" className="h-8 w-8" />
             <span className="text-xl font-bold text-gradient-primary">
               Eye Touch
             </span>
