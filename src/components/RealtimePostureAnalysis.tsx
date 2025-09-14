@@ -11,6 +11,7 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  RotateCcw,
 } from "lucide-react";
 
 interface PoseLandmark {
@@ -36,6 +37,7 @@ const RealtimePostureAnalysis: React.FC = () => {
   const [analysis, setAnalysis] = useState<PostureAnalysis | null>(null);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [loadingError, setLoadingError] = useState<string>("");
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const streamRef = useRef<MediaStream | null>(null);
   const animationRef = useRef<number>();
   const poseRef = useRef<any>(null);
@@ -130,7 +132,7 @@ const RealtimePostureAnalysis: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const startCamera = async () => {
+  const startCamera = async (requestedFacingMode?: "user" | "environment") => {
     try {
       if (!videoRef.current) return;
       if (cameraRef.current) {
@@ -138,11 +140,13 @@ const RealtimePostureAnalysis: React.FC = () => {
         cameraRef.current = null;
       }
 
+      const currentFacingMode = requestedFacingMode || facingMode;
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 640 },
           height: { ideal: 480 },
-          facingMode: "user",
+          facingMode: currentFacingMode,
         },
       });
       streamRef.current = stream;
@@ -156,6 +160,7 @@ const RealtimePostureAnalysis: React.FC = () => {
       });
 
       setIsStreaming(true);
+      setFacingMode(currentFacingMode);
 
       if (
         (window as any).Camera &&
@@ -199,6 +204,25 @@ const RealtimePostureAnalysis: React.FC = () => {
     setIsAnalyzing(false);
     setLandmarks([]);
     setAnalysis(null);
+  };
+
+  const switchCamera = async () => {
+    if (!isStreaming) return;
+
+    const newFacingMode = facingMode === "user" ? "environment" : "user";
+
+    // Stop current camera
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (cameraRef.current) {
+      cameraRef.current.stop();
+      cameraRef.current = null;
+    }
+
+    // Start camera with new facing mode
+    await startCamera(newFacingMode);
   };
 
   const onPoseResults = useCallback(
@@ -408,7 +432,13 @@ const RealtimePostureAnalysis: React.FC = () => {
         <CardContent>
           <div className="flex gap-4 mb-4">
             <Button
-              onClick={isStreaming ? stopCamera : startCamera}
+              onClick={() => {
+                if (isStreaming) {
+                  stopCamera();
+                } else {
+                  startCamera();
+                }
+              }}
               disabled={!isModelLoaded && !loadingError}
               className={isStreaming ? "btn-destructive" : "btn-healing"}
             >
@@ -426,13 +456,24 @@ const RealtimePostureAnalysis: React.FC = () => {
             </Button>
 
             {isStreaming && (
-              <Button
-                onClick={toggleAnalysis}
-                variant={isAnalyzing ? "destructive" : "default"}
-                disabled={!poseRef.current}
-              >
-                {isAnalyzing ? "Stop Analysis" : "Start Analysis"}
-              </Button>
+              <>
+                <Button
+                  onClick={switchCamera}
+                  variant="outline"
+                  className="flex items-center"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Switch Camera
+                </Button>
+
+                <Button
+                  onClick={toggleAnalysis}
+                  variant={isAnalyzing ? "destructive" : "default"}
+                  disabled={!poseRef.current}
+                >
+                  {isAnalyzing ? "Stop Analysis" : "Start Analysis"}
+                </Button>
+              </>
             )}
           </div>
 
