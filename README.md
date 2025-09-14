@@ -124,7 +124,7 @@ For testing purposes, use these demo accounts:
 
 - **Customer**: sarah@example.com (password: demo123)
 - **Therapist**: david@therapist.com (password: demo123)
-- **Admin**: admin@nueddee.com (password: demo123)
+- **Admin**: admin@nuaddee.com (password: demo123)
 
 ## 📱 Pages
 
