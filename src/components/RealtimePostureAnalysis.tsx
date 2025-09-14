@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,67 +40,67 @@ const RealtimePostureAnalysis: React.FC = () => {
   const animationRef = useRef<number>();
   const poseRef = useRef<any>(null);
 
-  // Initialize MediaPipe Pose
+  // Initialize MediaPipe Pose with proper error handling
   useEffect(() => {
     const initializeMediaPipe = async () => {
       try {
-        // Create script elements with proper error handling
-        const loadScript = (src: string): Promise<void> => {
-          return new Promise((resolve, reject) => {
-            const script = document.createElement("script");
-            script.src = src;
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error(`Failed to load ${src}`));
-            document.head.appendChild(script);
-          });
-        };
-
         setLoadingError("Loading MediaPipe libraries...");
 
-        // Load MediaPipe scripts in sequence
-        await loadScript(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
-        );
-        await loadScript(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
-        );
-        await loadScript(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
-        );
-        await loadScript(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"
-        );
+        // Load MediaPipe Pose from CDN
+        const script = document.createElement("script");
+        script.src =
+          "https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js";
 
-        // Wait a bit for scripts to initialize
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        script.onload = async () => {
+          try {
+            // Wait for script to initialize
+            await new Promise((resolve) => setTimeout(resolve, 500));
 
-        if (typeof window !== "undefined" && (window as any).Pose) {
-          const pose = new (window as any).Pose({
-            locateFile: (file: string) => {
-              return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-            },
-          });
+            if (typeof (window as any).Pose !== "undefined") {
+              const pose = new (window as any).Pose({
+                locateFile: (file: string) => {
+                  return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
+                },
+              });
 
-          pose.setOptions({
-            modelComplexity: 1,
-            smoothLandmarks: true,
-            enableSegmentation: false,
-            smoothSegmentation: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5,
-          });
+              await pose.setOptions({
+                modelComplexity: 1,
+                smoothLandmarks: true,
+                enableSegmentation: false,
+                smoothSegmentation: false,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5,
+              });
 
-          pose.onResults(onPoseResults);
-          poseRef.current = pose;
+              pose.onResults(onPoseResults);
+              await pose.initialize();
+
+              poseRef.current = pose;
+              setIsModelLoaded(true);
+              setLoadingError("");
+              console.log("MediaPipe Pose initialized successfully");
+            } else {
+              throw new Error("MediaPipe Pose constructor not available");
+            }
+          } catch (initError) {
+            console.error("MediaPipe initialization error:", initError);
+            setLoadingError(`Initialization failed: ${initError}`);
+            // Enable basic camera functionality without pose detection
+            setIsModelLoaded(true);
+          }
+        };
+
+        script.onerror = () => {
+          console.error("Failed to load MediaPipe script");
+          setLoadingError("Failed to load MediaPipe library from CDN");
+          // Enable basic camera functionality
           setIsModelLoaded(true);
-          setLoadingError("");
-        } else {
-          throw new Error("MediaPipe Pose not available");
-        }
+        };
+
+        document.head.appendChild(script);
       } catch (error) {
         console.error("Failed to initialize MediaPipe:", error);
-        setLoadingError(`Failed to load MediaPipe: ${error}`);
-        // Fallback to basic video display without pose detection
+        setLoadingError(`Setup failed: ${error}`);
         setIsModelLoaded(true);
       }
     };
@@ -124,74 +126,94 @@ const RealtimePostureAnalysis: React.FC = () => {
       if (!ctx) return;
 
       // Set canvas size to match video
-      canvas.width = videoRef.current.videoWidth || 640;
-      canvas.height = videoRef.current.videoHeight || 480;
+      const video = videoRef.current;
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
 
       // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw video frame
-      ctx.save();
-      ctx.scale(-1, 1); // Mirror the video
-      ctx.drawImage(
-        videoRef.current,
-        -canvas.width,
-        0,
-        canvas.width,
-        canvas.height
-      );
-      ctx.restore();
-
+      // Check if we have pose landmarks
       if (results.poseLandmarks && results.poseLandmarks.length > 0) {
+        console.log("Pose landmarks detected:", results.poseLandmarks.length);
         setLandmarks(results.poseLandmarks);
 
-        // Draw pose landmarks
-        drawPoseLandmarks(
+        // Draw pose landmarks and connections
+        drawPoseVisualization(
           ctx,
           results.poseLandmarks,
           canvas.width,
           canvas.height
         );
 
+        // Perform analysis if enabled
         if (isAnalyzing) {
           const postureAnalysis = analyzePose(results.poseLandmarks);
           setAnalysis(postureAnalysis);
         }
+      } else {
+        // Clear landmarks if no pose detected
+        setLandmarks([]);
       }
     },
     [isAnalyzing]
   );
 
-  const drawPoseLandmarks = (
+  const drawPoseVisualization = (
     ctx: CanvasRenderingContext2D,
     landmarks: PoseLandmark[],
     width: number,
     height: number
   ) => {
-    // Define pose connections (MediaPipe Pose format)
+    // MediaPipe Pose connections
     const connections = [
+      // Face
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 7],
+      [0, 4],
+      [4, 5],
+      [5, 6],
+      [6, 8],
+      // Arms
+      [9, 10],
       [11, 12],
       [11, 13],
       [13, 15],
+      [15, 17],
+      [15, 19],
+      [15, 21],
+      [17, 19],
       [12, 14],
-      [14, 16], // Arms
+      [14, 16],
+      [16, 18],
+      [16, 20],
+      [16, 22],
+      [18, 20],
+      // Body
       [11, 23],
       [12, 24],
-      [23, 24], // Torso
+      [23, 24],
+      // Legs
       [23, 25],
-      [25, 27],
-      [27, 29],
-      [29, 31], // Left leg
       [24, 26],
+      [25, 27],
       [26, 28],
+      [27, 29],
       [28, 30],
-      [30, 32], // Right leg
+      [29, 31],
+      [30, 32],
     ];
 
-    // Draw connections
+    // Draw connections first
     ctx.strokeStyle = "#00ff88";
     ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+
     connections.forEach(([start, end]) => {
+      if (start >= landmarks.length || end >= landmarks.length) return;
+
       const startPoint = landmarks[start];
       const endPoint = landmarks[end];
 
@@ -202,41 +224,52 @@ const RealtimePostureAnalysis: React.FC = () => {
         (endPoint.visibility || 1) > 0.5
       ) {
         ctx.beginPath();
-        ctx.moveTo((1 - startPoint.x) * width, startPoint.y * height); // Mirror x coordinate
+        // Mirror x coordinate for selfie view
+        ctx.moveTo((1 - startPoint.x) * width, startPoint.y * height);
         ctx.lineTo((1 - endPoint.x) * width, endPoint.y * height);
         ctx.stroke();
       }
     });
 
-    // Draw landmarks
+    // Draw landmark points
     landmarks.forEach((landmark, index) => {
       if ((landmark.visibility || 1) > 0.5) {
+        const x = (1 - landmark.x) * width; // Mirror x coordinate
+        const y = landmark.y * height;
+
+        // Draw point with color coding
         ctx.fillStyle = getPointColor(index);
         ctx.beginPath();
-        ctx.arc(
-          (1 - landmark.x) * width,
-          landmark.y * height,
-          6,
-          0,
-          2 * Math.PI
-        ); // Mirror x coordinate
+        ctx.arc(x, y, 6, 0, 2 * Math.PI);
         ctx.fill();
 
-        // Draw point border
+        // Draw border
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, 2 * Math.PI);
         ctx.stroke();
+
+        // Draw landmark number for debugging (optional)
+        if (index % 5 === 0) {
+          // Only show every 5th number to avoid clutter
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "10px Arial";
+          ctx.fillText(index.toString(), x + 8, y - 8);
+        }
       }
     });
   };
 
   const getPointColor = (index: number): string => {
-    // Color code different body parts
-    if ([11, 12].includes(index)) return "#ff6b6b"; // Shoulders - red
-    if ([13, 14, 15, 16].includes(index)) return "#4ecdc4"; // Arms - teal
-    if ([23, 24].includes(index)) return "#45b7d1"; // Hips - blue
-    if ([25, 26, 27, 28, 29, 30, 31, 32].includes(index)) return "#96ceb4"; // Legs - green
-    return "#ffeaa7"; // Other points - yellow
+    // Color code different body parts based on MediaPipe Pose landmark indices
+    if (index >= 0 && index <= 10) return "#ff6b6b"; // Face/head - red
+    if ([11, 12].includes(index)) return "#e74c3c"; // Shoulders - dark red
+    if ([13, 14, 15, 16, 17, 18, 19, 20, 21, 22].includes(index))
+      return "#3498db"; // Arms - blue
+    if ([23, 24].includes(index)) return "#9b59b6"; // Hips - purple
+    if (index >= 25 && index <= 32) return "#2ecc71"; // Legs - green
+    return "#f39c12"; // Other points - orange
   };
 
   const analyzePose = (landmarks: PoseLandmark[]): PostureAnalysis => {
@@ -249,78 +282,99 @@ const RealtimePostureAnalysis: React.FC = () => {
       };
     }
 
-    // Key landmark indices for MediaPipe Pose
-    const leftShoulder = landmarks[11];
-    const rightShoulder = landmarks[12];
-    const leftHip = landmarks[23];
-    const rightHip = landmarks[24];
+    try {
+      // MediaPipe Pose landmark indices
+      const leftShoulder = landmarks[11];
+      const rightShoulder = landmarks[12];
+      const leftHip = landmarks[23];
+      const rightHip = landmarks[24];
 
-    // Calculate shoulder alignment
-    const shoulderHeightDiff = Math.abs(leftShoulder.y - rightShoulder.y);
-    const shoulderScore = Math.max(0, 100 - shoulderHeightDiff * 1000);
+      // Verify landmarks exist and have valid visibility
+      if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) {
+        throw new Error("Missing key landmarks");
+      }
 
-    // Calculate spine alignment (simplified)
-    const midShoulder = {
-      x: (leftShoulder.x + rightShoulder.x) / 2,
-      y: (leftShoulder.y + rightShoulder.y) / 2,
-    };
-    const midHip = {
-      x: (leftHip.x + rightHip.x) / 2,
-      y: (leftHip.y + rightHip.y) / 2,
-    };
+      // Calculate shoulder alignment
+      const shoulderHeightDiff = Math.abs(leftShoulder.y - rightShoulder.y);
+      const shoulderScore = Math.max(0, 100 - shoulderHeightDiff * 2000);
 
-    const spineAngle = Math.abs(
-      Math.atan2(midShoulder.y - midHip.y, midShoulder.x - midHip.x) -
-        Math.PI / 2
-    );
-    const spineScore = Math.max(0, 100 - spineAngle * 100);
+      // Calculate spine alignment
+      const shoulderMidpoint = {
+        x: (leftShoulder.x + rightShoulder.x) / 2,
+        y: (leftShoulder.y + rightShoulder.y) / 2,
+      };
+      const hipMidpoint = {
+        x: (leftHip.x + rightHip.x) / 2,
+        y: (leftHip.y + rightHip.y) / 2,
+      };
 
-    // Calculate hip alignment
-    const hipHeightDiff = Math.abs(leftHip.y - rightHip.y);
-    const hipScore = Math.max(0, 100 - hipHeightDiff * 1000);
+      const spineVector = {
+        x: shoulderMidpoint.x - hipMidpoint.x,
+        y: shoulderMidpoint.y - hipMidpoint.y,
+      };
 
-    const overallScore = (shoulderScore + spineScore + hipScore) / 3;
+      // Calculate deviation from vertical (ideal spine should be vertical)
+      const spineAngle = Math.abs(Math.atan2(spineVector.x, spineVector.y));
+      const spineScore = Math.max(0, 100 - ((spineAngle * 180) / Math.PI) * 2);
 
-    return {
-      shoulderAlignment: {
-        score: shoulderScore,
-        feedback:
-          shoulderScore > 80
-            ? "Excellent shoulder alignment!"
-            : shoulderScore > 60
-            ? "Good alignment, minor adjustments needed"
-            : "Adjust shoulder position for better alignment",
-      },
-      spineAlignment: {
-        score: spineScore,
-        feedback:
-          spineScore > 80
-            ? "Great spinal posture!"
-            : spineScore > 60
-            ? "Good posture, keep spine straight"
-            : "Focus on keeping your spine neutral",
-      },
-      hipAlignment: {
-        score: hipScore,
-        feedback:
-          hipScore > 80
-            ? "Perfect hip alignment!"
-            : hipScore > 60
-            ? "Good hip position"
-            : "Adjust hip positioning for better balance",
-      },
-      overallScore: Math.round(overallScore),
-    };
+      // Calculate hip alignment
+      const hipHeightDiff = Math.abs(leftHip.y - rightHip.y);
+      const hipScore = Math.max(0, 100 - hipHeightDiff * 2000);
+
+      const overallScore = (shoulderScore + spineScore + hipScore) / 3;
+
+      return {
+        shoulderAlignment: {
+          score: shoulderScore,
+          feedback:
+            shoulderScore > 80
+              ? "Excellent shoulder alignment!"
+              : shoulderScore > 60
+              ? "Good alignment, minor adjustments needed"
+              : "Try to level your shoulders",
+        },
+        spineAlignment: {
+          score: spineScore,
+          feedback:
+            spineScore > 80
+              ? "Great spinal posture!"
+              : spineScore > 60
+              ? "Good posture, keep spine straight"
+              : "Focus on keeping your spine vertical",
+        },
+        hipAlignment: {
+          score: hipScore,
+          feedback:
+            hipScore > 80
+              ? "Perfect hip alignment!"
+              : hipScore > 60
+              ? "Good hip position"
+              : "Try to level your hips",
+        },
+        overallScore: Math.round(overallScore),
+      };
+    } catch (error) {
+      console.error("Analysis error:", error);
+      return {
+        shoulderAlignment: { score: 0, feedback: "Analysis error" },
+        spineAlignment: { score: 0, feedback: "Analysis error" },
+        hipAlignment: { score: 0, feedback: "Analysis error" },
+        overallScore: 0,
+      };
+    }
   };
 
   const startCamera = async () => {
     try {
+      setLoadingError("");
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 640 },
           height: { ideal: 480 },
           facingMode: "user",
         },
+        audio: false,
       });
 
       if (videoRef.current) {
@@ -328,12 +382,15 @@ const RealtimePostureAnalysis: React.FC = () => {
         streamRef.current = stream;
 
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
-          setIsStreaming(true);
+          if (videoRef.current) {
+            videoRef.current.play();
+            setIsStreaming(true);
 
-          if (canvasRef.current && videoRef.current) {
-            canvasRef.current.width = videoRef.current.videoWidth || 640;
-            canvasRef.current.height = videoRef.current.videoHeight || 480;
+            // Set canvas size to match video
+            if (canvasRef.current) {
+              canvasRef.current.width = videoRef.current.videoWidth || 640;
+              canvasRef.current.height = videoRef.current.videoHeight || 480;
+            }
 
             // Start processing frames
             processFrame();
@@ -341,34 +398,49 @@ const RealtimePostureAnalysis: React.FC = () => {
         };
       }
     } catch (error) {
-      console.error("Error accessing camera:", error);
-      setLoadingError(`Camera access error: ${error}`);
+      console.error("Camera access error:", error);
+      setLoadingError(`Camera access denied: ${error}`);
     }
   };
 
   const stopCamera = () => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = undefined;
+    }
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-    }
+
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
+
     setIsStreaming(false);
     setIsAnalyzing(false);
     setLandmarks([]);
     setAnalysis(null);
+
+    // Clear canvas
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      }
+    }
   };
 
-  const processFrame = () => {
-    if (!videoRef.current || !isStreaming) return;
+  const processFrame = async () => {
+    if (!videoRef.current || !isStreaming || !videoRef.current.readyState) {
+      animationRef.current = requestAnimationFrame(processFrame);
+      return;
+    }
 
-    if (poseRef.current) {
+    if (poseRef.current && videoRef.current.videoWidth > 0) {
       try {
-        poseRef.current.send({ image: videoRef.current });
+        await poseRef.current.send({ image: videoRef.current });
       } catch (error) {
         console.error("Pose processing error:", error);
       }
@@ -385,11 +457,11 @@ const RealtimePostureAnalysis: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 p-4">
       {/* Camera Controls */}
-      <Card className="border-0 shadow-soft">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center text-gradient-healing">
+          <CardTitle className="flex items-center">
             <Camera className="h-5 w-5 mr-2" />
             Real-time Posture Analysis
           </CardTitle>
@@ -399,7 +471,6 @@ const RealtimePostureAnalysis: React.FC = () => {
             <Button
               onClick={isStreaming ? stopCamera : startCamera}
               disabled={!isModelLoaded && !loadingError}
-              className={isStreaming ? "btn-destructive" : "btn-healing"}
             >
               {isStreaming ? (
                 <>
@@ -418,7 +489,6 @@ const RealtimePostureAnalysis: React.FC = () => {
               <Button
                 onClick={toggleAnalysis}
                 variant={isAnalyzing ? "destructive" : "default"}
-                disabled={!poseRef.current}
               >
                 {isAnalyzing ? "Stop Analysis" : "Start Analysis"}
               </Button>
@@ -429,55 +499,50 @@ const RealtimePostureAnalysis: React.FC = () => {
           {!isModelLoaded && !loadingError && (
             <div className="text-center py-4">
               <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-gray-600">
                 Loading MediaPipe Pose model...
               </div>
             </div>
           )}
 
-          {loadingError && !isStreaming && (
+          {loadingError && (
             <div className="text-center py-4">
               <AlertCircle className="h-6 w-6 text-yellow-500 mx-auto mb-2" />
-              <div className="text-sm text-muted-foreground mb-2">
-                {loadingError}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                You can still use the camera for basic video, but pose detection
-                may not work.
-              </div>
+              <div className="text-sm text-gray-600 mb-2">{loadingError}</div>
+              {isStreaming && (
+                <div className="text-xs text-gray-500">
+                  Camera is working, but pose detection may not be available.
+                </div>
+              )}
             </div>
           )}
 
           {/* Camera Feed Container */}
-          <div
-            className="relative bg-black rounded-lg overflow-hidden"
-            style={{ aspectRatio: "4/3" }}
-          >
-            {/* Video Element */}
+          <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+            {/* Video Element (hidden, used for processing) */}
             <video
               ref={videoRef}
               autoPlay
               muted
               playsInline
-              className="w-full h-full object-cover"
-              style={{ transform: "scaleX(-1)" }} // Mirror the video
+              className="absolute inset-0 w-full h-full object-cover opacity-50"
+              style={{ transform: "scaleX(-1)" }}
             />
 
-            {/* Canvas Overlay for Pose Detection */}
+            {/* Canvas Overlay for Pose Visualization */}
             <canvas
               ref={canvasRef}
-              className="absolute top-0 left-0 w-full h-full"
-              style={{ pointerEvents: "none" }}
+              className="absolute inset-0 w-full h-full object-cover"
             />
 
             {/* Placeholder when not streaming */}
             {!isStreaming && (
-              <div className="absolute inset-0 flex items-center justify-center text-white bg-black/50">
+              <div className="absolute inset-0 flex items-center justify-center text-white">
                 <div className="text-center">
                   <Camera className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p>Camera feed will appear here</p>
                   <p className="text-sm opacity-75 mt-2">
-                    Click &quot;Start Camera&quot; to begin
+                    Click "Start Camera" to begin
                   </p>
                 </div>
               </div>
@@ -486,14 +551,8 @@ const RealtimePostureAnalysis: React.FC = () => {
 
           {/* Status Indicators */}
           {isStreaming && (
-            <div className="mt-4 flex items-center justify-center gap-4">
-              <Badge
-                className={
-                  landmarks.length > 0
-                    ? "bg-success/10 text-success border-success/20"
-                    : "bg-warning/10 text-warning border-warning/20"
-                }
-              >
+            <div className="mt-4 flex items-center justify-center gap-4 flex-wrap">
+              <Badge variant={landmarks.length > 0 ? "default" : "secondary"}>
                 {landmarks.length > 0 ? (
                   <>
                     <CheckCircle className="h-4 w-4 mr-1" />
@@ -508,9 +567,16 @@ const RealtimePostureAnalysis: React.FC = () => {
               </Badge>
 
               {poseRef.current && (
-                <Badge className="bg-primary/10 text-primary border-primary/20">
+                <Badge variant="outline">
                   <CheckCircle className="h-4 w-4 mr-1" />
-                  AI Ready
+                  AI Model Ready
+                </Badge>
+              )}
+
+              {isAnalyzing && (
+                <Badge variant="destructive">
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Analyzing...
                 </Badge>
               )}
             </div>
@@ -520,9 +586,9 @@ const RealtimePostureAnalysis: React.FC = () => {
 
       {/* Real-time Analysis Results */}
       {analysis && isAnalyzing && (
-        <Card className="border-0 shadow-medium">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center text-gradient-success">
+            <CardTitle className="flex items-center">
               <AlertCircle className="h-5 w-5 mr-2" />
               Real-time Posture Analysis
             </CardTitle>
@@ -530,62 +596,78 @@ const RealtimePostureAnalysis: React.FC = () => {
           <CardContent>
             <div className="space-y-4">
               {/* Overall Score */}
-              <div className="text-center p-4 bg-background-secondary rounded-lg">
-                <div className="text-3xl font-bold text-gradient-primary mb-2">
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <div className="text-3xl font-bold mb-2 text-blue-600">
                   {analysis.overallScore}%
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-gray-600">
                   Overall Posture Score
                 </div>
               </div>
 
               {/* Detailed Analysis */}
               <div className="grid md:grid-cols-3 gap-4">
-                <div className="p-4 bg-background-secondary rounded-lg">
+                <div className="p-4 bg-gray-50 rounded-lg">
                   <h4 className="font-medium mb-2">Shoulder Alignment</h4>
-                  <div className="text-2xl font-bold mb-1">
+                  <div className="text-2xl font-bold mb-1 text-blue-600">
                     {Math.round(analysis.shoulderAlignment.score)}%
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-600">
                     {analysis.shoulderAlignment.feedback}
                   </p>
                 </div>
 
-                <div className="p-4 bg-background-secondary rounded-lg">
+                <div className="p-4 bg-gray-50 rounded-lg">
                   <h4 className="font-medium mb-2">Spine Alignment</h4>
-                  <div className="text-2xl font-bold mb-1">
+                  <div className="text-2xl font-bold mb-1 text-blue-600">
                     {Math.round(analysis.spineAlignment.score)}%
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-600">
                     {analysis.spineAlignment.feedback}
                   </p>
                 </div>
 
-                <div className="p-4 bg-background-secondary rounded-lg">
+                <div className="p-4 bg-gray-50 rounded-lg">
                   <h4 className="font-medium mb-2">Hip Alignment</h4>
-                  <div className="text-2xl font-bold mb-1">
+                  <div className="text-2xl font-bold mb-1 text-blue-600">
                     {Math.round(analysis.hipAlignment.score)}%
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-600">
                     {analysis.hipAlignment.feedback}
                   </p>
                 </div>
               </div>
 
               {/* Tips */}
-              <div className="p-4 bg-healing/10 border border-healing/20 rounded-lg">
-                <h4 className="font-medium mb-2 text-healing">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium mb-2 text-blue-800">
                   💡 Real-time Tips
                 </h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Stand facing the camera for best detection</li>
+                <ul className="text-sm space-y-1 text-blue-700">
+                  <li>• Stand 3-6 feet away from the camera</li>
                   <li>• Ensure good lighting on your body</li>
-                  <li>• Keep your full torso visible in the frame</li>
-                  <li>
-                    • Analysis updates in real-time as you adjust your posture
-                  </li>
+                  <li>• Keep your full body visible in the frame</li>
+                  <li>• Stand naturally and let the AI analyze your posture</li>
+                  <li>• Green lines show detected pose skeleton</li>
                 </ul>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Debug Info (for development) */}
+      {landmarks.length > 0 && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-sm">Debug Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xs text-gray-600">
+              <p>Landmarks detected: {landmarks.length}</p>
+              <p>Model loaded: {poseRef.current ? "Yes" : "No"}</p>
+              <p>Stream active: {isStreaming ? "Yes" : "No"}</p>
+              <p>Analysis active: {isAnalyzing ? "Yes" : "No"}</p>
             </div>
           </CardContent>
         </Card>
