@@ -28,6 +28,40 @@ interface PostureAnalysis {
   overallScore: number;
 }
 
+// Helper to get device screen size (not browser window size)
+function getDeviceScreenSize() {
+  if (typeof window === "undefined") {
+    return { width: 360, height: 640 };
+  }
+  // Use screen.width/height for device, fallback to window.innerWidth/Height
+  const width =
+    window.screen && window.screen.width
+      ? window.screen.width
+      : window.innerWidth;
+  const height =
+    window.screen && window.screen.height
+      ? window.screen.height
+      : window.innerHeight;
+  return { width, height };
+}
+
+// Fixed camera area size for the component (responsive, but not overflowing)
+const CAMERA_MAX_WIDTH = 480;
+const CAMERA_ASPECT_RATIO = 4 / 3; // 4:3 aspect ratio for camera
+
+const getCameraDimensions = () => {
+  // Use device width, but cap to CAMERA_MAX_WIDTH
+  const device = getDeviceScreenSize();
+  let width = Math.min(device.width, CAMERA_MAX_WIDTH);
+  let height = Math.round(width / CAMERA_ASPECT_RATIO);
+  // If device is very short, adjust height
+  if (height > device.height * 0.6) {
+    height = Math.round(device.height * 0.6);
+    width = Math.round(height * CAMERA_ASPECT_RATIO);
+  }
+  return { width, height };
+};
+
 const RealtimePostureAnalysis: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -43,28 +77,23 @@ const RealtimePostureAnalysis: React.FC = () => {
   const poseRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
 
-  // Track screen size for width/height
-  const [screenSize, setScreenSize] = useState<{
-    width: number;
-    height: number;
-  }>({
-    width: typeof window !== "undefined" ? window.innerWidth : 1280,
-    height: typeof window !== "undefined" ? window.innerHeight : 720,
-  });
+  // Use fixed camera area size for the component
+  const [cameraSize, setCameraSize] = useState(getCameraDimensions());
 
   useEffect(() => {
-    // Update screen size on resize
-    const handleResize = () => {
-      setScreenSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
+    // On mount, set to device screen size and listen for orientation changes
+    const updateCameraSize = () => {
+      setCameraSize(getCameraDimensions());
     };
-    window.addEventListener("resize", handleResize);
-    // Set initial size
-    handleResize();
+
+    updateCameraSize();
+
+    window.addEventListener("orientationchange", updateCameraSize);
+    window.addEventListener("resize", updateCameraSize);
+
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", updateCameraSize);
+      window.removeEventListener("resize", updateCameraSize);
     };
   }, []);
 
@@ -167,10 +196,13 @@ const RealtimePostureAnalysis: React.FC = () => {
 
       const currentFacingMode = requestedFacingMode || facingMode;
 
+      // Use cameraSize for camera constraints
+      let { width, height } = cameraSize;
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: screenSize.width },
-          height: { ideal: screenSize.height },
+          width: { ideal: width, max: width },
+          height: { ideal: height, max: height },
           facingMode: currentFacingMode,
         },
       });
@@ -199,8 +231,8 @@ const RealtimePostureAnalysis: React.FC = () => {
               await poseRef.current.send({ image: videoRef.current });
             }
           },
-          width: screenSize.width,
-          height: screenSize.height,
+          width: width,
+          height: height,
         });
         cameraRef.current.start();
       }
@@ -258,9 +290,9 @@ const RealtimePostureAnalysis: React.FC = () => {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // Set canvas size to screen size
-      canvas.width = screenSize.width;
-      canvas.height = screenSize.height;
+      // Always use the current cameraSize for canvas
+      canvas.width = cameraSize.width;
+      canvas.height = cameraSize.height;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -293,7 +325,7 @@ const RealtimePostureAnalysis: React.FC = () => {
         setLandmarks([]);
       }
     },
-    [isAnalyzing, screenSize]
+    [isAnalyzing, cameraSize]
   );
 
   const drawPoseLandmarks = (
@@ -446,9 +478,9 @@ const RealtimePostureAnalysis: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full flex flex-col items-center">
       {/* Camera Controls */}
-      <Card className="border-0 shadow-soft">
+      <Card className="border-0 shadow-soft w-full max-w-[500px]">
         <CardHeader>
           <CardTitle className="flex items-center text-gradient-healing">
             <Camera className="h-5 w-5 mr-2" />
@@ -456,7 +488,7 @@ const RealtimePostureAnalysis: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-4">
+          <div className="flex flex-wrap gap-2 mb-4 justify-center">
             <Button
               onClick={() => {
                 if (isStreaming) {
@@ -467,6 +499,7 @@ const RealtimePostureAnalysis: React.FC = () => {
               }}
               disabled={!isModelLoaded && !loadingError}
               className={isStreaming ? "btn-destructive" : "btn-healing"}
+              style={{ minWidth: 120 }}
             >
               {isStreaming ? (
                 <>
@@ -487,6 +520,7 @@ const RealtimePostureAnalysis: React.FC = () => {
                   onClick={switchCamera}
                   variant="outline"
                   className="flex items-center"
+                  style={{ minWidth: 120 }}
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Switch Camera
@@ -496,6 +530,7 @@ const RealtimePostureAnalysis: React.FC = () => {
                   onClick={toggleAnalysis}
                   variant={isAnalyzing ? "destructive" : "default"}
                   disabled={!poseRef.current}
+                  style={{ minWidth: 120 }}
                 >
                   {isAnalyzing ? "Stop Analysis" : "Start Analysis"}
                 </Button>
@@ -528,12 +563,18 @@ const RealtimePostureAnalysis: React.FC = () => {
 
           {/* Camera Feed Container */}
           <div
-            className="relative bg-black rounded-lg overflow-hidden"
+            className="relative bg-black rounded-lg overflow-hidden mx-auto"
             style={{
-              width: `${screenSize.width}px`,
-              height: `${screenSize.height}px`,
-              maxWidth: "100vw",
-              maxHeight: "100vh",
+              width: `${cameraSize.width}px`,
+              height: `${cameraSize.height}px`,
+              maxWidth: "100%",
+              maxHeight: "70vw",
+              minWidth: 200,
+              minHeight: 150,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto",
             }}
           >
             {/* Video Element */}
@@ -542,15 +583,17 @@ const RealtimePostureAnalysis: React.FC = () => {
               autoPlay
               muted
               playsInline
-              className="w-full h-full object-cover"
+              className="absolute top-0 left-0 w-full h-full object-cover"
               style={{
                 transform: "scaleX(-1)",
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
+                borderRadius: "0.5rem",
+                zIndex: 1,
               }} // Mirror the video
-              width={screenSize.width}
-              height={screenSize.height}
+              width={cameraSize.width}
+              height={cameraSize.height}
             />
 
             {/* Canvas Overlay for Pose Detection */}
@@ -561,14 +604,15 @@ const RealtimePostureAnalysis: React.FC = () => {
                 pointerEvents: "none",
                 width: "100%",
                 height: "100%",
+                zIndex: 2,
               }}
-              width={screenSize.width}
-              height={screenSize.height}
+              width={cameraSize.width}
+              height={cameraSize.height}
             />
 
             {/* Placeholder when not streaming */}
             {!isStreaming && (
-              <div className="absolute inset-0 flex items-center justify-center text-white bg-black/50">
+              <div className="absolute inset-0 flex items-center justify-center text-white bg-black/50 z-10">
                 <div className="text-center">
                   <Camera className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p>Camera feed will appear here</p>
@@ -582,7 +626,7 @@ const RealtimePostureAnalysis: React.FC = () => {
 
           {/* Status Indicators */}
           {isStreaming && (
-            <div className="mt-4 flex items-center justify-center gap-4">
+            <div className="mt-4 flex items-center justify-center gap-4 flex-wrap">
               <Badge
                 className={
                   landmarks.length > 0
@@ -616,7 +660,7 @@ const RealtimePostureAnalysis: React.FC = () => {
 
       {/* Real-time Analysis Results */}
       {analysis && isAnalyzing && (
-        <Card className="border-0 shadow-medium">
+        <Card className="border-0 shadow-medium w-full max-w-[500px]">
           <CardHeader>
             <CardTitle className="flex items-center text-gradient-success">
               <AlertCircle className="h-5 w-5 mr-2" />
