@@ -43,6 +43,31 @@ const RealtimePostureAnalysis: React.FC = () => {
   const poseRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
 
+  // Track screen size for width/height
+  const [screenSize, setScreenSize] = useState<{
+    width: number;
+    height: number;
+  }>({
+    width: typeof window !== "undefined" ? window.innerWidth : 1280,
+    height: typeof window !== "undefined" ? window.innerHeight : 720,
+  });
+
+  useEffect(() => {
+    // Update screen size on resize
+    const handleResize = () => {
+      setScreenSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+    window.addEventListener("resize", handleResize);
+    // Set initial size
+    handleResize();
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -144,8 +169,8 @@ const RealtimePostureAnalysis: React.FC = () => {
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: screenSize.width },
+          height: { ideal: screenSize.height },
           facingMode: currentFacingMode,
         },
       });
@@ -174,8 +199,8 @@ const RealtimePostureAnalysis: React.FC = () => {
               await poseRef.current.send({ image: videoRef.current });
             }
           },
-          width: videoRef.current.videoWidth || 640,
-          height: videoRef.current.videoHeight || 480,
+          width: screenSize.width,
+          height: screenSize.height,
         });
         cameraRef.current.start();
       }
@@ -233,8 +258,9 @@ const RealtimePostureAnalysis: React.FC = () => {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      canvas.width = videoRef.current.videoWidth || 640;
-      canvas.height = videoRef.current.videoHeight || 480;
+      // Set canvas size to screen size
+      canvas.width = screenSize.width;
+      canvas.height = screenSize.height;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -267,7 +293,7 @@ const RealtimePostureAnalysis: React.FC = () => {
         setLandmarks([]);
       }
     },
-    [isAnalyzing]
+    [isAnalyzing, screenSize]
   );
 
   const drawPoseLandmarks = (
@@ -503,7 +529,12 @@ const RealtimePostureAnalysis: React.FC = () => {
           {/* Camera Feed Container */}
           <div
             className="relative bg-black rounded-lg overflow-hidden"
-            style={{ aspectRatio: "4/3" }}
+            style={{
+              width: `${screenSize.width}px`,
+              height: `${screenSize.height}px`,
+              maxWidth: "100vw",
+              maxHeight: "100vh",
+            }}
           >
             {/* Video Element */}
             <video
@@ -512,14 +543,27 @@ const RealtimePostureAnalysis: React.FC = () => {
               muted
               playsInline
               className="w-full h-full object-cover"
-              style={{ transform: "scaleX(-1)" }} // Mirror the video
+              style={{
+                transform: "scaleX(-1)",
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }} // Mirror the video
+              width={screenSize.width}
+              height={screenSize.height}
             />
 
             {/* Canvas Overlay for Pose Detection */}
             <canvas
               ref={canvasRef}
               className="absolute top-0 left-0 w-full h-full"
-              style={{ pointerEvents: "none" }}
+              style={{
+                pointerEvents: "none",
+                width: "100%",
+                height: "100%",
+              }}
+              width={screenSize.width}
+              height={screenSize.height}
             />
 
             {/* Placeholder when not streaming */}
