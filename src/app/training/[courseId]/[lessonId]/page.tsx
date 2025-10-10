@@ -21,7 +21,7 @@ import {
   FileText,
   Eye,
 } from "lucide-react";
-import RealtimePostureAnalysis from "@/components/RealtimePostureAnalysis";
+import GeminiPostureAnalysis from "@/components/GeminiPostureAnalysis";
 
 interface Lesson {
   id: string;
@@ -212,7 +212,7 @@ export default function LessonDetailPage() {
       </Card>
 
       {/* Real-time Posture Analysis Component */}
-      <RealtimePostureAnalysis />
+      <GeminiPostureAnalysis />
 
       {/* Auto-completion notice */}
       <Card className="border-0 shadow-soft">
