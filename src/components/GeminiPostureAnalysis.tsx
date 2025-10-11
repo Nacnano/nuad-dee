@@ -262,13 +262,19 @@ const GeminiPostureAnalysis: React.FC = () => {
         model,
         config,
         callbacks: {
-          onopen: () => {
+          onopen: async () => {
             console.debug("Session Opened");
             setIsAnalyzing(true);
             setIsConnecting(false);
-            // Start sending media after session is open
-            if (streamRef.current) {
-              startSendingMedia(streamRef.current);
+            try {
+              // Wait a short moment for the session to be fully established
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              if (streamRef.current && sessionRef.current) {
+                startSendingMedia(streamRef.current);
+              }
+            } catch (error) {
+              console.error("Error starting media stream:", error);
+              stopSession();
             }
           },
           onmessage: (message: LiveServerMessage) => {
@@ -311,35 +317,48 @@ const GeminiPostureAnalysis: React.FC = () => {
   };
 
   const startSendingMedia = (stream: MediaStream) => {
-    if (!sessionRef.current) {
-      console.error("Session not started. Cannot send media.");
-      return;
-    }
+    try {
+      if (!sessionRef.current) {
+        throw new Error("Session not started. Cannot send media.");
+      }
 
-    mediaRecorderRef.current = new MediaRecorder(stream);
+      if (mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
 
-    mediaRecorderRef.current.ondataavailable = async (event) => {
-      if (event.data.size > 0 && sessionRef.current) {
-        const chunk = await event.data.arrayBuffer();
-        const base64Chunk = Buffer.from(chunk).toString("base64");
-        sessionRef.current.sendClientContent({
-          turns: [
-            {
-              parts: [
+      mediaRecorderRef.current = new MediaRecorder(stream);
+
+      mediaRecorderRef.current.ondataavailable = async (event) => {
+        if (event.data.size > 0 && sessionRef.current) {
+          try {
+            const chunk = await event.data.arrayBuffer();
+            const base64Chunk = Buffer.from(chunk).toString("base64");
+            sessionRef.current.sendClientContent({
+              turns: [
                 {
-                  inlineData: {
-                    mimeType: event.data.type,
-                    data: base64Chunk,
-                  },
+                  parts: [
+                    {
+                      inlineData: {
+                        mimeType: event.data.type,
+                        data: base64Chunk,
+                      },
+                    },
+                  ],
                 },
               ],
-            },
-          ],
-        });
-      }
-    };
+            });
+          } catch (error) {
+            console.error("Error sending media chunk:", error);
+            stopSession();
+          }
+        }
+      };
 
-    mediaRecorderRef.current.start(1000); // Send data every 1 second
+      mediaRecorderRef.current.start(1000); // Send data every 1 second
+    } catch (error) {
+      console.error("Error starting media recorder:", error);
+      stopSession();
+    }
   };
 
   const startCamera = async (requestedFacingMode?: "user" | "environment") => {
