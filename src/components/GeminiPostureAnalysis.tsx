@@ -20,7 +20,9 @@ import {
   RotateCcw,
   Mic,
 } from "lucide-react";
-import { apiEndpoints } from "@/lib/config";
+import { GoogleGenAI, Modality } from "@google/genai";
+import { geminiConfig } from "@/lib/config";
+import { massageTherapistPrompt } from "@/lib/system-prompts";
 
 const GeminiPostureAnalysis: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -38,9 +40,13 @@ const GeminiPostureAnalysis: React.FC = () => {
   const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    if (!geminiConfig.apiKey) {
+      setError(
+        "Gemini API key is not configured. Please set NEXT_PUBLIC_GEMINI_API_KEY in your environment variables."
+      );
+    }
     return () => {
       if (sessionRef.current) {
         sessionRef.current.close();
@@ -59,9 +65,6 @@ const GeminiPostureAnalysis: React.FC = () => {
       }
       if (audioContextRef.current) {
         audioContextRef.current.close();
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
       }
     };
   }, []);
@@ -131,142 +134,105 @@ const GeminiPostureAnalysis: React.FC = () => {
     return turns;
   }, [waitMessage]);
 
-  const parseSSE = async (
-    response: Response,
-    onMessage: (msg: any) => void
-  ) => {
-    if (!response.body) return;
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = "";
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-
-      let doubleNewline;
-      while ((doubleNewline = buf.indexOf("\n\n")) !== -1) {
-        const chunk = buf.slice(0, doubleNewline).trim();
-        buf = buf.slice(doubleNewline + 2);
-        if (!chunk) continue;
-
-        // lines like: data: {"..."}
-        const lines = chunk.split("\n").filter(Boolean);
-        const dataLines = lines
-          .filter((l) => l.startsWith("data:"))
-          .map((l) => l.replace(/^data:\s?/, ""));
-        const dataText = dataLines.join("\n").trim();
-
-        if (!dataText) continue;
-        if (dataText === "[DONE]") {
-          onMessage({ serverContent: { turnComplete: true } });
-          continue;
-        }
-        try {
-          const parsed = JSON.parse(dataText);
-          onMessage(parsed);
-        } catch (e) {
-          console.warn("SSE JSON parse failed:", e, dataText);
-        }
-      }
-    }
-  };
-
-  const captureAndSendFrameHTTP = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+  const captureAndSendFrame = useCallback(async () => {
+    if (!videoRef.current || !canvasRef.current || !sessionRef.current) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
+
     if (!ctx) return;
 
+    // Set canvas size to match video
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
+
+    // Draw video frame to canvas
     ctx.drawImage(video, 0, 0);
+
+    // Get image data as base64 JPEG
     const base64Image = canvas.toDataURL("image/jpeg", 0.8).split(",")[1];
 
     try {
-      console.log("📸 POSTing frame to streaming endpoint");
-      const resp = await fetch(apiEndpoints.geminiSession, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "image",
+      console.log("📸 Sending image frame");
+      await sessionRef.current.sendRealtimeInput({
+        image: {
           data: base64Image,
           mimeType: "image/jpeg",
-        }),
+        },
       });
-
-      if (!resp.ok) {
-        console.error("Frame POST failed:", resp.status, await resp.text());
-        setError("Server returned error while sending frame");
-        return;
-      }
-
-      // Parse SSE and push messages into responseQueue
-      parseSSE(resp, (msg) => {
-        responseQueue.current.push(msg);
-      });
-    } catch (err) {
-      console.error("Error sending frame (HTTP):", err);
-      setError("Failed to send frame");
+    } catch (error) {
+      console.error("Error sending frame:", error);
     }
   }, []);
 
   const startSession = async () => {
+    if (!geminiConfig.apiKey) {
+      setError(
+        "Gemini API key not found. Please configure it in your environment variables."
+      );
+      return;
+    }
     setIsConnecting(true);
     setError("");
     responseQueue.current = [];
 
     try {
-      console.log("🔵 Starting HTTP-streaming based session...");
+      const ai = new GoogleGenAI({ apiKey: geminiConfig.apiKey });
+      const model = geminiConfig.model;
+      const config = {
+        responseModalities: [Modality.AUDIO],
+        systemInstruction: massageTherapistPrompt,
+      };
 
-      // mark connected/analyzing immediately
-      setIsAnalyzing(true);
-      setIsConnecting(false);
+      console.log("🔵 Connecting to Gemini Live API...");
 
-      // Start sending frames every 2 seconds (each frame POST creates its own streaming response)
-      captureIntervalRef.current = setInterval(() => {
-        captureAndSendFrameHTTP();
-        handleTurn(); // drains responseQueue
-      }, 2000);
+      const session = await ai.live.connect({
+        model,
+        config,
+        callbacks: {
+          onopen: () => {
+            console.log("✅ Session Opened");
+            setIsAnalyzing(true);
+            setIsConnecting(false);
 
-      // Send an initial frame shortly after starting
-      setTimeout(() => captureAndSendFrameHTTP(), 500);
+            // Start sending frames every 2 seconds
+            captureIntervalRef.current = setInterval(() => {
+              captureAndSendFrame();
+              handleTurn();
+            }, 2000);
 
-      // Start audio processing if stream exists
+            // Send initial frame
+            setTimeout(captureAndSendFrame, 500);
+          },
+          onmessage: (message: any) => {
+            console.log("📨 Message received:", message);
+            responseQueue.current.push(message);
+          },
+          onerror: (e: ErrorEvent) => {
+            console.error("❌ Session Error:", e);
+            setError(`Session error: ${e.message}`);
+            stopSession();
+          },
+          onclose: (e: CloseEvent) => {
+            console.log("🔴 Session Closed:", e.reason, "Code:", e.code);
+            stopSession();
+          },
+        },
+      });
+
+      sessionRef.current = session;
+      console.log("✅ Session reference stored");
+
+      // Start processing audio input
       if (streamRef.current && audioContextRef.current) {
-        startAudioProcessing(streamRef.current); // null because we are using fetch inside audio processor
+        startAudioProcessing(streamRef.current);
       }
     } catch (e: any) {
       console.error("❌ Failed to start session:", e);
-      setError(`Failed to start session: ${e?.message || e}`);
+      setError(`Failed to start session: ${e.message}`);
       setIsConnecting(false);
       setIsAnalyzing(false);
-    }
-  };
-
-  const sendAudioChunkHTTP = async (base64Audio: string) => {
-    try {
-      const resp = await fetch(apiEndpoints.geminiSession, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "audio",
-          data: base64Audio,
-          mimeType: "audio/pcm;rate=16000",
-        }),
-      });
-      if (!resp.ok) {
-        console.warn("Audio POST error:", resp.status, await resp.text());
-        return;
-      }
-      parseSSE(resp, (msg) => {
-        responseQueue.current.push(msg);
-      });
-    } catch (e) {
-      console.error("sendAudioChunkHTTP error:", e);
     }
   };
 
@@ -279,10 +245,12 @@ const GeminiPostureAnalysis: React.FC = () => {
         console.warn("No audio track found");
         return;
       }
+
       const audioStream = new MediaStream([audioTrack]);
       audioSourceRef.current =
         audioContextRef.current.createMediaStreamSource(audioStream);
 
+      // Create processor for 16-bit PCM at 16kHz
       processorRef.current = audioContextRef.current.createScriptProcessor(
         4096,
         1,
@@ -290,24 +258,38 @@ const GeminiPostureAnalysis: React.FC = () => {
       );
 
       processorRef.current.onaudioprocess = (e) => {
-        // convert float32 to int16
+        if (!sessionRef.current) return;
+
         const inputData = e.inputBuffer.getChannelData(0);
+
+        // Convert float32 to int16 PCM
         const int16Data = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
           const s = Math.max(-1, Math.min(1, inputData[i]));
           int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
         }
+
+        // Convert to base64
         const buffer = new Uint8Array(int16Data.buffer);
         const base64Audio = btoa(String.fromCharCode(...buffer));
 
-        // fire-and-forget POST for this chunk
-        sendAudioChunkHTTP(base64Audio);
+        // Send audio chunk
+        try {
+          sessionRef.current.sendRealtimeInput({
+            audio: {
+              data: base64Audio,
+              mimeType: "audio/pcm;rate=16000",
+            },
+          });
+        } catch (err) {
+          console.error("Error sending audio:", err);
+        }
       };
 
       audioSourceRef.current.connect(processorRef.current);
       processorRef.current.connect(audioContextRef.current.destination);
 
-      console.log("✅ Audio processing started (HTTP chunks)");
+      console.log("✅ Audio processing started");
     } catch (error) {
       console.error("Error starting audio processing:", error);
     }
@@ -320,13 +302,20 @@ const GeminiPostureAnalysis: React.FC = () => {
       clearInterval(captureIntervalRef.current);
       captureIntervalRef.current = null;
     }
+
     if (processorRef.current) {
       processorRef.current.disconnect();
       processorRef.current = null;
     }
+
     if (audioSourceRef.current) {
       audioSourceRef.current.disconnect();
       audioSourceRef.current = null;
+    }
+
+    if (sessionRef.current) {
+      sessionRef.current.close();
+      sessionRef.current = null;
     }
 
     setIsAnalyzing(false);
@@ -414,6 +403,7 @@ const GeminiPostureAnalysis: React.FC = () => {
             <div className="flex flex-wrap gap-2 justify-center">
               <Button
                 onClick={() => (isStreaming ? stopCamera() : startCamera())}
+                disabled={!geminiConfig.apiKey}
                 className={isStreaming ? "btn-destructive" : "btn-healing"}
                 style={{ minWidth: 120 }}
               >
