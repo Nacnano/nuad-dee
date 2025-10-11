@@ -172,8 +172,10 @@ const RealtimePostureAnalysis: React.FC = () => {
 
     return () => {
       isMounted = false;
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const animationFrameId = animationRef.current;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -282,52 +284,6 @@ const RealtimePostureAnalysis: React.FC = () => {
     await startCamera(newFacingMode);
   };
 
-  const onPoseResults = useCallback(
-    (results: any) => {
-      if (!canvasRef.current || !videoRef.current) return;
-
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      // Always use the current cameraSize for canvas
-      canvas.width = cameraSize.width;
-      canvas.height = cameraSize.height;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      ctx.save();
-      ctx.scale(-1, 1);
-      ctx.drawImage(
-        videoRef.current,
-        -canvas.width,
-        0,
-        canvas.width,
-        canvas.height
-      );
-      ctx.restore();
-
-      if (results.poseLandmarks && results.poseLandmarks.length > 0) {
-        setLandmarks(results.poseLandmarks);
-
-        drawPoseLandmarks(
-          ctx,
-          results.poseLandmarks,
-          canvas.width,
-          canvas.height
-        );
-
-        if (isAnalyzing) {
-          const postureAnalysis = analyzePose(results.poseLandmarks);
-          setAnalysis(postureAnalysis);
-        }
-      } else {
-        setLandmarks([]);
-      }
-    },
-    [isAnalyzing, cameraSize]
-  );
-
   const drawPoseLandmarks = (
     ctx: CanvasRenderingContext2D,
     landmarks: PoseLandmark[],
@@ -391,6 +347,53 @@ const RealtimePostureAnalysis: React.FC = () => {
       }
     });
   };
+
+  const onPoseResults = useCallback(
+    (results: any) => {
+      if (!canvasRef.current || !videoRef.current) return;
+
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      // Always use the current cameraSize for canvas
+      canvas.width = cameraSize.width;
+      canvas.height = cameraSize.height;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.drawImage(
+        videoRef.current,
+        -canvas.width,
+        0,
+        canvas.width,
+        canvas.height
+      );
+      ctx.restore();
+
+      if (results.poseLandmarks && results.poseLandmarks.length > 0) {
+        setLandmarks(results.poseLandmarks);
+
+        drawPoseLandmarks(
+          ctx,
+          results.poseLandmarks,
+          canvas.width,
+          canvas.height
+        );
+
+        if (isAnalyzing) {
+          const postureAnalysis = analyzePose(results.poseLandmarks);
+          setAnalysis(postureAnalysis);
+        }
+      } else {
+        setLandmarks([]);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isAnalyzing, cameraSize]
+  );
 
   const getPointColor = (index: number): string => {
     if ([11, 12].includes(index)) return "#ff6b6b"; // Shoulders - red
