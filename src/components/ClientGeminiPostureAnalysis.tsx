@@ -24,7 +24,7 @@ import { GoogleGenAI, Modality } from "@google/genai";
 import { geminiConfig } from "@/lib/config";
 import { massageTherapistPrompt } from "@/lib/system-prompts";
 
-const GeminiPostureAnalysis: React.FC = () => {
+const ClientGeminiPostureAnalysis: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -521,4 +521,4 @@ const GeminiPostureAnalysis: React.FC = () => {
   );
 };
 
-export default GeminiPostureAnalysis;
+export default ClientGeminiPostureAnalysis;
