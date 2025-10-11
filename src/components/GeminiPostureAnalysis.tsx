@@ -284,10 +284,9 @@ const GeminiPostureAnalysis: React.FC = () => {
         callbacks: {
           onopen: async () => {
             console.debug("Session Opened");
-            sessionRef.current = session;
+            // DON'T set sessionRef.current here
             setIsAnalyzing(true);
             setIsConnecting(false);
-            // Wait for session to be fully established
             await new Promise((resolve) => setTimeout(resolve, 500));
             if (streamRef.current && sessionRef.current) {
               startSendingMedia(streamRef.current);
@@ -308,13 +307,15 @@ const GeminiPostureAnalysis: React.FC = () => {
           },
         },
       });
+
+      // Set the session ref AFTER the connection is established
+      sessionRef.current = session;
     } catch (e: any) {
       setError(`Failed to start session: ${e.message}`);
       setIsConnecting(false);
       setIsAnalyzing(false);
     }
   };
-
   const stopSession = () => {
     if (
       mediaRecorderRef.current &&
