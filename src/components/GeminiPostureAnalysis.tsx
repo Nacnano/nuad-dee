@@ -20,106 +20,26 @@ import {
   RotateCcw,
   Mic,
 } from "lucide-react";
-import {
-  GoogleGenAI,
-  LiveServerMessage,
-  MediaResolution,
-  Modality,
-  Session,
-} from "@google/genai";
-import { Buffer } from "buffer";
+import { GoogleGenAI, Modality } from "@google/genai";
 import { geminiConfig } from "@/lib/config";
 import { massageTherapistPrompt } from "@/lib/system-prompts";
 
-// This is needed for the browser environment
-if (typeof window !== "undefined") {
-  window.Buffer = Buffer;
-}
-
-interface WavConversionOptions {
-  numChannels: number;
-  sampleRate: number;
-  bitsPerSample: number;
-}
-
-function convertToWav(rawData: string[], mimeType: string) {
-  const options = parseMimeType(mimeType);
-  const dataLength = rawData.reduce((a, b) => a + b.length, 0);
-  const wavHeader = createWavHeader(dataLength, options);
-  const buffer = Buffer.concat(
-    rawData.map((data) => Buffer.from(data, "base64"))
-  );
-
-  return Buffer.concat([wavHeader, buffer]);
-}
-
-function parseMimeType(mimeType: string) {
-  const [fileType, ...params] = mimeType.split(";").map((s) => s.trim());
-  const [_, format] = fileType.split("/");
-
-  const options: Partial<WavConversionOptions> = {
-    numChannels: 1,
-    bitsPerSample: 16,
-  };
-
-  if (format && format.startsWith("L")) {
-    const bits = parseInt(format.slice(1), 10);
-    if (!isNaN(bits)) {
-      options.bitsPerSample = bits;
-    }
-  }
-
-  for (const param of params) {
-    const [key, value] = param.split("=").map((s) => s.trim());
-    if (key === "rate") {
-      options.sampleRate = parseInt(value, 10);
-    }
-  }
-
-  return options as WavConversionOptions;
-}
-
-function createWavHeader(dataLength: number, options: WavConversionOptions) {
-  const { numChannels, sampleRate, bitsPerSample } = options;
-
-  const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
-  const blockAlign = (numChannels * bitsPerSample) / 8;
-  const buffer = Buffer.alloc(44);
-
-  buffer.write("RIFF", 0);
-  buffer.writeUInt32LE(36 + dataLength, 4);
-  buffer.write("WAVE", 8);
-  buffer.write("fmt ", 12);
-  buffer.writeUInt32LE(16, 16);
-  buffer.writeUInt16LE(1, 20);
-  buffer.writeUInt16LE(numChannels, 22);
-  buffer.writeUInt32LE(sampleRate, 24);
-  buffer.writeUInt32LE(byteRate, 28);
-  buffer.writeUInt16LE(blockAlign, 32);
-  buffer.writeUInt16LE(bitsPerSample, 34);
-  buffer.write("data", 36);
-  buffer.writeUInt32LE(dataLength, 40);
-
-  return buffer;
-}
-
 const GeminiPostureAnalysis: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string>("");
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const [responseText, setResponseText] = useState<string>("");
   const streamRef = useRef<MediaStream | null>(null);
-  const sessionRef = useRef<Session | null>(null);
+  const sessionRef = useRef<any>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const audioQueue = useRef<Buffer[]>([]);
-  const isPlaying = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const responseQueue = useRef<LiveServerMessage[]>([]);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const currentTurnAudioParts = useRef<string[]>([]);
-  const processingTurn = useRef(false);
+  const responseQueue = useRef<any[]>([]);
+  const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
 
   useEffect(() => {
     if (!geminiConfig.apiKey) {
@@ -134,11 +54,14 @@ const GeminiPostureAnalysis: React.FC = () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
-      if (
-        mediaRecorderRef.current &&
-        mediaRecorderRef.current.state === "recording"
-      ) {
-        mediaRecorderRef.current.stop();
+      if (captureIntervalRef.current) {
+        clearInterval(captureIntervalRef.current);
+      }
+      if (processorRef.current) {
+        processorRef.current.disconnect();
+      }
+      if (audioSourceRef.current) {
+        audioSourceRef.current.disconnect();
       }
       if (audioContextRef.current) {
         audioContextRef.current.close();
@@ -146,100 +69,102 @@ const GeminiPostureAnalysis: React.FC = () => {
     };
   }, []);
 
-  const playNextAudio = useCallback(async () => {
-    if (isPlaying.current || audioQueue.current.length === 0) {
-      return;
-    }
-    isPlaying.current = true;
-    const buffer = audioQueue.current.shift();
-    if (buffer && audioContextRef.current) {
-      try {
-        const audioBuffer = await audioContextRef.current.decodeAudioData(
-          Uint8Array.from(buffer).buffer
-        );
-        const source = audioContextRef.current.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioContextRef.current.destination);
-        source.onended = () => {
-          isPlaying.current = false;
-          playNextAudio();
-        };
-        source.start(0);
-      } catch (e) {
-        console.error("Error playing audio:", e);
-        isPlaying.current = false;
-        playNextAudio();
-      }
-    } else {
-      isPlaying.current = false;
-    }
-  }, []);
-
-  const handleModelTurn = useCallback(
-    (message: LiveServerMessage) => {
-      if (message.serverContent?.modelTurn?.parts) {
-        const part = message.serverContent?.modelTurn?.parts?.[0];
-
-        if (part?.fileData) {
-          console.log(`File: ${part?.fileData.fileUri}`);
-        }
-
-        if (part?.inlineData) {
-          // Accumulate audio parts for the current turn
-          currentTurnAudioParts.current.push(part.inlineData.data ?? "");
-        }
-
-        if (part?.text) {
-          console.log(`Text: ${part.text}`);
-          setResponseText((prev) => prev + part.text);
-        }
-      }
-
-      // Check if turn is complete
-      if (message.serverContent?.turnComplete) {
-        // Process all accumulated audio parts as one complete audio file
-        if (currentTurnAudioParts.current.length > 0) {
-          const mimeType =
-            message.serverContent?.modelTurn?.parts?.[0]?.inlineData
-              ?.mimeType ?? "audio/pcm;rate=24000";
-          const buffer = convertToWav(currentTurnAudioParts.current, mimeType);
-          audioQueue.current.push(buffer);
-          playNextAudio();
-          // Clear for next turn
-          currentTurnAudioParts.current = [];
-        }
-      }
-    },
-    [playNextAudio]
-  );
-
-  const waitMessage = useCallback(async (): Promise<LiveServerMessage> => {
-    while (true) {
-      const message = responseQueue.current.shift();
+  const waitMessage = useCallback(async () => {
+    let done = false;
+    let message = undefined;
+    while (!done) {
+      message = responseQueue.current.shift();
       if (message) {
-        return message;
+        done = true;
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
-      await new Promise((resolve) => setTimeout(resolve, 50));
     }
+    return message;
   }, []);
 
   const handleTurn = useCallback(async () => {
-    if (processingTurn.current) return;
-    processingTurn.current = true;
+    const turns = [];
+    let done = false;
+    while (!done && sessionRef.current) {
+      const message = await waitMessage();
+      turns.push(message);
 
-    try {
-      let done = false;
-      while (!done && sessionRef.current) {
-        const message = await waitMessage();
-        handleModelTurn(message);
-        if (message.serverContent && message.serverContent.turnComplete) {
-          done = true;
+      // Handle text response
+      if (message.text) {
+        console.log("📝 Text:", message.text);
+        setResponseText((prev) => prev + message.text);
+      }
+
+      // Handle audio response
+      if (message.data && audioContextRef.current) {
+        console.log("🔊 Audio data received");
+        try {
+          const buffer = Uint8Array.from(atob(message.data), (c) =>
+            c.charCodeAt(0)
+          );
+          const audioData = new Int16Array(buffer.buffer);
+
+          // Convert Int16Array to AudioBuffer
+          const audioBuffer = audioContextRef.current.createBuffer(
+            1,
+            audioData.length,
+            24000
+          );
+          const channelData = audioBuffer.getChannelData(0);
+          for (let i = 0; i < audioData.length; i++) {
+            channelData[i] = audioData[i] / 32768.0;
+          }
+
+          // Play audio
+          const source = audioContextRef.current.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(audioContextRef.current.destination);
+          source.start(0);
+        } catch (e) {
+          console.error("Error playing audio:", e);
         }
       }
-    } finally {
-      processingTurn.current = false;
+
+      if (message.serverContent && message.serverContent.turnComplete) {
+        console.log("✅ Turn complete");
+        done = true;
+      }
     }
-  }, [waitMessage, handleModelTurn]);
+    return turns;
+  }, [waitMessage]);
+
+  const captureAndSendFrame = useCallback(async () => {
+    if (!videoRef.current || !canvasRef.current || !sessionRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    // Set canvas size to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw video frame to canvas
+    ctx.drawImage(video, 0, 0);
+
+    // Get image data as base64 JPEG
+    const base64Image = canvas.toDataURL("image/jpeg", 0.8).split(",")[1];
+
+    try {
+      console.log("📸 Sending image frame");
+      await sessionRef.current.sendRealtimeInput({
+        image: {
+          data: base64Image,
+          mimeType: "image/jpeg",
+        },
+      });
+    } catch (error) {
+      console.error("Error sending frame:", error);
+    }
+  }, []);
 
   const startSession = async () => {
     if (!geminiConfig.apiKey) {
@@ -250,148 +175,153 @@ const GeminiPostureAnalysis: React.FC = () => {
     }
     setIsConnecting(true);
     setError("");
-    currentTurnAudioParts.current = [];
+    responseQueue.current = [];
 
     try {
       const ai = new GoogleGenAI({ apiKey: geminiConfig.apiKey });
       const model = geminiConfig.model;
       const config = {
         responseModalities: [Modality.AUDIO],
-        mediaResolution: MediaResolution.MEDIA_RESOLUTION_MEDIUM,
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: "Zephyr",
-            },
-          },
-        },
-        contextWindowCompression: {
-          triggerTokens: "25600",
-          slidingWindow: { targetTokens: "12800" },
-        },
-        systemInstruction: {
-          parts: [
-            {
-              text: massageTherapistPrompt,
-            },
-          ],
-        },
+        systemInstruction: massageTherapistPrompt,
       };
+
+      console.log("🔵 Connecting to Gemini Live API...");
 
       const session = await ai.live.connect({
         model,
         config,
         callbacks: {
-          onopen: async () => {
-            console.debug("Session Opened");
-            // DON'T set sessionRef.current here
+          onopen: () => {
+            console.log("✅ Session Opened");
             setIsAnalyzing(true);
             setIsConnecting(false);
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            if (streamRef.current && sessionRef.current) {
-              startSendingMedia(streamRef.current);
-            }
+
+            // Start sending frames every 2 seconds
+            captureIntervalRef.current = setInterval(() => {
+              captureAndSendFrame();
+              handleTurn();
+            }, 2000);
+
+            // Send initial frame
+            setTimeout(captureAndSendFrame, 500);
           },
-          onmessage: (message: LiveServerMessage) => {
+          onmessage: (message: any) => {
+            console.log("📨 Message received:", message);
             responseQueue.current.push(message);
-            handleTurn();
           },
           onerror: (e: ErrorEvent) => {
-            console.error("Session Error:", e);
+            console.error("❌ Session Error:", e);
             setError(`Session error: ${e.message}`);
             stopSession();
           },
           onclose: (e: CloseEvent) => {
-            console.debug("Session Close:", e.reason);
+            console.log("🔴 Session Closed:", e.reason, "Code:", e.code);
             stopSession();
           },
         },
       });
 
-      // Set the session ref AFTER the connection is established
       sessionRef.current = session;
+      console.log("✅ Session reference stored");
+
+      // Start processing audio input
+      if (streamRef.current && audioContextRef.current) {
+        startAudioProcessing(streamRef.current);
+      }
     } catch (e: any) {
+      console.error("❌ Failed to start session:", e);
       setError(`Failed to start session: ${e.message}`);
       setIsConnecting(false);
       setIsAnalyzing(false);
     }
   };
-  const stopSession = () => {
-    if (
-      mediaRecorderRef.current &&
-      mediaRecorderRef.current.state === "recording"
-    ) {
-      mediaRecorderRef.current.stop();
+
+  const startAudioProcessing = (stream: MediaStream) => {
+    if (!audioContextRef.current) return;
+
+    try {
+      const audioTrack = stream.getAudioTracks()[0];
+      if (!audioTrack) {
+        console.warn("No audio track found");
+        return;
+      }
+
+      const audioStream = new MediaStream([audioTrack]);
+      audioSourceRef.current =
+        audioContextRef.current.createMediaStreamSource(audioStream);
+
+      // Create processor for 16-bit PCM at 16kHz
+      processorRef.current = audioContextRef.current.createScriptProcessor(
+        4096,
+        1,
+        1
+      );
+
+      processorRef.current.onaudioprocess = (e) => {
+        if (!sessionRef.current) return;
+
+        const inputData = e.inputBuffer.getChannelData(0);
+
+        // Convert float32 to int16 PCM
+        const int16Data = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          const s = Math.max(-1, Math.min(1, inputData[i]));
+          int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        }
+
+        // Convert to base64
+        const buffer = new Uint8Array(int16Data.buffer);
+        const base64Audio = btoa(String.fromCharCode(...buffer));
+
+        // Send audio chunk
+        try {
+          sessionRef.current.sendRealtimeInput({
+            audio: {
+              data: base64Audio,
+              mimeType: "audio/pcm;rate=16000",
+            },
+          });
+        } catch (err) {
+          console.error("Error sending audio:", err);
+        }
+      };
+
+      audioSourceRef.current.connect(processorRef.current);
+      processorRef.current.connect(audioContextRef.current.destination);
+
+      console.log("✅ Audio processing started");
+    } catch (error) {
+      console.error("Error starting audio processing:", error);
     }
-    mediaRecorderRef.current = null;
+  };
+
+  const stopSession = () => {
+    console.log("🛑 Stopping session...");
+
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+      captureIntervalRef.current = null;
+    }
+
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
+    }
+
+    if (audioSourceRef.current) {
+      audioSourceRef.current.disconnect();
+      audioSourceRef.current = null;
+    }
+
     if (sessionRef.current) {
       sessionRef.current.close();
       sessionRef.current = null;
     }
+
     setIsAnalyzing(false);
     setIsConnecting(false);
     setResponseText("");
-    currentTurnAudioParts.current = [];
-    audioQueue.current = [];
     responseQueue.current = [];
-  };
-
-  const startSendingMedia = (stream: MediaStream) => {
-    try {
-      if (!sessionRef.current) {
-        throw new Error("Session not started. Cannot send media.");
-      }
-
-      if (mediaRecorderRef.current?.state === "recording") {
-        mediaRecorderRef.current.stop();
-      }
-
-      const mimeType = MediaRecorder.isTypeSupported(
-        "video/webm;codecs=vp9,opus"
-      )
-        ? "video/webm;codecs=vp9,opus"
-        : "video/webm";
-
-      mediaRecorderRef.current = new MediaRecorder(stream, {
-        mimeType: mimeType,
-      });
-
-      mediaRecorderRef.current.ondataavailable = async (event) => {
-        if (event.data.size > 0 && sessionRef.current) {
-          try {
-            const chunk = await event.data.arrayBuffer();
-            const base64Chunk = Buffer.from(chunk).toString("base64");
-            sessionRef.current.sendClientContent({
-              turns: [
-                {
-                  parts: [
-                    {
-                      inlineData: {
-                        mimeType: event.data.type,
-                        data: base64Chunk,
-                      },
-                    },
-                  ],
-                },
-              ],
-            });
-          } catch (error) {
-            console.error("Error sending media chunk:", error);
-          }
-        }
-      };
-
-      mediaRecorderRef.current.onerror = (event) => {
-        console.error("MediaRecorder error:", event);
-        stopSession();
-      };
-
-      // Send chunks every 2 seconds instead of 1
-      mediaRecorderRef.current.start(2000);
-    } catch (error) {
-      console.error("Error starting media recorder:", error);
-      stopSession();
-    }
   };
 
   const startCamera = async (requestedFacingMode?: "user" | "environment") => {
@@ -408,17 +338,21 @@ const GeminiPostureAnalysis: React.FC = () => {
         },
         audio: true,
       });
+
       streamRef.current = stream;
       videoRef.current.srcObject = stream;
       videoRef.current.play();
       setIsStreaming(true);
       setFacingMode(currentFacingMode);
+
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext ||
-          (window as any).webkitAudioContext)();
+          (window as any).webkitAudioContext)({ sampleRate: 16000 });
       }
+
+      console.log("✅ Camera started successfully");
     } catch (err: any) {
-      console.error("Error accessing media devices.", err);
+      console.error("❌ Error accessing media devices:", err);
       setError(`Camera/Mic access error: ${err.message}`);
     }
   };
@@ -442,7 +376,6 @@ const GeminiPostureAnalysis: React.FC = () => {
     stopCamera();
     await startCamera(newFacingMode);
     if (wasAnalyzing) {
-      // Restart analysis if it was running
       setTimeout(() => startSession(), 500);
     }
   };
@@ -534,6 +467,7 @@ const GeminiPostureAnalysis: React.FC = () => {
               className="absolute top-0 left-0 w-full h-full object-cover"
               style={{ transform: "scaleX(-1)" }}
             />
+            <canvas ref={canvasRef} style={{ display: "none" }} />
             {!isStreaming && (
               <div className="absolute inset-0 flex items-center justify-center text-white bg-black/50">
                 <div className="text-center">
