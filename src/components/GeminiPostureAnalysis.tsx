@@ -110,6 +110,7 @@ const GeminiPostureAnalysis: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string>("");
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [responseText, setResponseText] = useState<string>("");
   const streamRef = useRef<MediaStream | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -187,7 +188,9 @@ const GeminiPostureAnalysis: React.FC = () => {
         }
 
         if (part?.text) {
-          console.log(part?.text);
+          // NOTE: For dev
+          console.log(`Text: ${part.text}`);
+          setResponseText((prev) => prev + part.text);
         }
       }
     },
@@ -314,6 +317,7 @@ const GeminiPostureAnalysis: React.FC = () => {
     }
     setIsAnalyzing(false);
     setIsConnecting(false);
+    setResponseText("");
   };
 
   const startSendingMedia = (stream: MediaStream) => {
@@ -502,6 +506,16 @@ const GeminiPostureAnalysis: React.FC = () => {
               </div>
             )}
           </div>
+
+          {isStreaming && isAnalyzing && responseText && (
+            <div className="mt-4 p-4 bg-muted/10 rounded-lg border border-muted">
+              <div className="max-h-48 overflow-y-auto space-y-2 text-sm">
+                {responseText.split("\n").map((line, index) => (
+                  <p key={index}>{line}</p>
+                ))}
+              </div>
+            </div>
+          )}
 
           {isStreaming && (
             <div className="mt-4 flex items-center justify-center gap-4 flex-wrap">
