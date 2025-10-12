@@ -114,16 +114,43 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
 
   const switchCamera = useCallback(async () => {
     if (!isStreaming) return;
-    const newMode: FacingMode = facingMode === "user" ? "environment" : "user";
-    const wasAnalyzing = isAnalyzing;
+    
+    try {
+      const newMode: FacingMode = facingMode === "user" ? "environment" : "user";
+      const wasAnalyzing = isAnalyzing;
 
-    stopCamera();
-    await startCamera(newMode);
+      // Stop analysis first if running
+      if (wasAnalyzing) {
+        stopCapturing();
+        stopAudioProcessing();
+      }
 
-    if (wasAnalyzing) {
-      setTimeout(() => beginAnalysis(), 500);
+      // Stop current camera
+      stopCamera();
+      
+      // Wait for camera to fully release (critical for mobile devices)
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Start new camera with different facing mode
+      const stream = await startCamera(newMode);
+      
+      if (!stream) {
+        throw new Error("Failed to start camera with new facing mode");
+      }
+
+      // Wait for camera to stabilize
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Restart analysis if it was running
+      if (wasAnalyzing) {
+        await beginAnalysis();
+      }
+    } catch (err: any) {
+      console.error("Camera switch error:", err);
+      // Try to restart with original facing mode if switch failed
+      await startCamera(facingMode);
     }
-  }, [facingMode, isStreaming, isAnalyzing, stopCamera, startCamera, beginAnalysis]);
+  }, [facingMode, isStreaming, isAnalyzing, stopCamera, startCamera, beginAnalysis, stopCapturing, stopAudioProcessing]);
 
   return (
     <div className="space-y-6 w-full flex flex-col items-center">
