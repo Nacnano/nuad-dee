@@ -25,6 +25,7 @@ export const useMediaCapture = () => {
   const startCamera = useCallback(
     async (requestedFacing?: FacingMode) => {
       try {
+        setError(""); // Clear any previous errors
         const targetFacing = requestedFacing || facingMode;
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: targetFacing, ...VIDEO_CONFIG },
@@ -58,16 +59,26 @@ export const useMediaCapture = () => {
   );
 
   const stopCamera = useCallback(() => {
+    // Stop all tracks individually
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
+      const tracks = streamRef.current.getTracks();
+      tracks.forEach((track) => {
+        track.stop();
+        console.log(`Stopped ${track.kind} track`);
+      });
       streamRef.current = null;
     }
 
+    // Properly clean up video element
     if (videoRef.current) {
-      videoRef.current.srcObject = null;
       videoRef.current.pause();
+      videoRef.current.srcObject = null;
+      // Force a load to clear any pending operations
+      videoRef.current.load();
     }
+    
     setIsStreaming(false);
+    setError(""); // Clear any previous errors
   }, []);
 
   const captureFrame = useCallback(() => {
