@@ -20,7 +20,6 @@ import {
   RotateCcw,
   Mic,
 } from "lucide-react";
-import { geminiConfig } from "@/lib/config";
 import { useMediaCapture } from "@/hooks/useMediaCapture";
 import { useGeminiSessionSecure } from "@/hooks/useGeminiSessionSecure";
 import { FacingMode } from "@/lib/media-utils";
