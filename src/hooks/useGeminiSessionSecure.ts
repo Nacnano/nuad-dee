@@ -20,13 +20,12 @@ export const useGeminiSessionSecure = () => {
     responseQueue.current.push(msg);
   }, []);
 
-  const waitForMessage =
-    useCallback(async (): Promise<LiveServerMessage | null> => {
-      while (responseQueue.current.length === 0 && sessionIdRef.current) {
-        await new Promise((r) => setTimeout(r, 100));
-      }
-      return responseQueue.current.shift() || null;
-    }, []);
+  const waitForMessage = useCallback(async (): Promise<LiveServerMessage | null> => {
+    while (responseQueue.current.length === 0 && sessionIdRef.current) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return responseQueue.current.shift() || null;
+  }, []);
 
   const playAudio = useCallback((audioParts: { data: string; mimeType: string }[]) => {
     if (audioParts.length === 0) return;
@@ -34,84 +33,86 @@ export const useGeminiSessionSecure = () => {
     try {
       // Use the mimeType from the first audio part
       const mimeType = audioParts[0].mimeType;
-      const audioDataArray = audioParts.map(part => part.data);
-      
+      const audioDataArray = audioParts.map((part) => part.data);
+
       console.log("🎵 Converting audio to WAV format...");
       console.log("🎵 Audio parts count:", audioDataArray.length);
       console.log("🎵 MIME type:", mimeType);
-      
+
       // Convert to WAV format
       const wavBuffer = convertToWav(audioDataArray, mimeType);
-      
+
       // Create blob and play
-      const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+      const blob = new Blob([wavBuffer], { type: "audio/wav" });
       const audioUrl = URL.createObjectURL(blob);
       const audio = new Audio(audioUrl);
-      
+
       audio.onended = () => {
         URL.revokeObjectURL(audioUrl);
         console.log("🎵 Audio playback finished");
       };
-      
+
       audio.onerror = (e) => {
         console.error("🔴 Audio playback error:", e);
         URL.revokeObjectURL(audioUrl);
       };
-      
-      audio.play().then(() => {
-        console.log("🎵 Audio playback started successfully!");
-      }).catch((err) => {
-        console.error("🔴 Failed to play audio:", err);
-      });
+
+      audio
+        .play()
+        .then(() => {
+          console.log("🎵 Audio playback started successfully!");
+        })
+        .catch((err) => {
+          console.error("🔴 Failed to play audio:", err);
+        });
     } catch (err) {
       console.error("🔴 Audio conversion error:", err);
     }
   }, []);
 
-  const handleModelTurn = useCallback((message: LiveServerMessage) => {
-    if (message.serverContent?.modelTurn?.parts) {
-      const parts = message.serverContent.modelTurn.parts;
+  const handleModelTurn = useCallback(
+    (message: LiveServerMessage) => {
+      if (message.serverContent?.modelTurn?.parts) {
+        const parts = message.serverContent.modelTurn.parts;
 
-      parts.forEach((part) => {
-        // Handle text response
-        if (part.text) {
-          console.log("📝 Text response:", part.text);
-          setResponseText((prev) => prev + part.text);
-        }
+        parts.forEach((part) => {
+          // Handle text response
+          if (part.text) {
+            console.log("📝 Text response:", part.text);
+            setResponseText((prev) => prev + part.text);
+          }
 
-        // Handle audio response - accumulate audio parts
-        if (part.inlineData && part.inlineData.data) {
-          console.log("🔊 Audio response received");
-          console.log("🎵 MIME type:", part.inlineData.mimeType);
-          console.log(
-            "📊 Data size:",
-            Math.round(part.inlineData.data.length / 1024),
-            "KB"
-          );
+          // Handle audio response - accumulate audio parts
+          if (part.inlineData && part.inlineData.data) {
+            console.log("🔊 Audio response received");
+            console.log("🎵 MIME type:", part.inlineData.mimeType);
+            console.log("📊 Data size:", Math.round(part.inlineData.data.length / 1024), "KB");
 
-          // Accumulate audio parts
-          audioPartsRef.current.push({
-            data: part.inlineData.data,
-            mimeType: part.inlineData.mimeType || 'audio/pcm;rate=24000'
-          });
-          console.log("📦 Accumulated audio parts:", audioPartsRef.current.length);
-        }
+            // Accumulate audio parts
+            audioPartsRef.current.push({
+              data: part.inlineData.data,
+              mimeType: part.inlineData.mimeType || "audio/pcm;rate=24000",
+            });
+            console.log("📦 Accumulated audio parts:", audioPartsRef.current.length);
+          }
 
-        // Handle file data response
-        if (part.fileData) {
-          console.log("📁 File response:", part.fileData.fileUri);
-        }
-      });
-    }
+          // Handle file data response
+          if (part.fileData) {
+            console.log("📁 File response:", part.fileData.fileUri);
+          }
+        });
+      }
 
-    // Play accumulated audio when turn is complete
-    if (message.serverContent?.turnComplete && audioPartsRef.current.length > 0) {
-      console.log("✅ Turn complete - playing accumulated audio");
-      playAudio([...audioPartsRef.current]);
-      // Clear audio parts for next turn
-      audioPartsRef.current = [];
-    }
-  }, [playAudio]);
+      // Play accumulated audio when turn is complete
+      if (message.serverContent?.turnComplete && audioPartsRef.current.length > 0) {
+        console.log("✅ Turn complete - playing accumulated audio");
+        playAudio([...audioPartsRef.current]);
+        // Clear audio parts for next turn
+        audioPartsRef.current = [];
+      }
+    },
+    [playAudio]
+  );
 
   const handleTurnsOnce = useCallback(
     async (audioContext: AudioContext | null) => {
@@ -183,53 +184,42 @@ export const useGeminiSessionSecure = () => {
 
               if (msgResponse.ok) {
                 const msgData = await msgResponse.json();
-                if (
-                  msgData.success &&
-                  msgData.messages &&
-                  msgData.messages.length > 0
-                ) {
+                if (msgData.success && msgData.messages && msgData.messages.length > 0) {
                   console.log(
                     "🎯 Received",
                     msgData.messages.length,
                     "LiveServerMessage(s) from model"
                   );
 
-                  msgData.messages.forEach(
-                    (msg: LiveServerMessage, index: number) => {
-                      console.log(`📨 LiveServerMessage ${index + 1}:`, {
-                        hasServerContent: !!msg.serverContent,
-                        hasModelTurn: !!msg.serverContent?.modelTurn,
-                        hasParts: !!msg.serverContent?.modelTurn?.parts,
-                        turnComplete: msg.serverContent?.turnComplete,
-                        partsCount:
-                          msg.serverContent?.modelTurn?.parts?.length || 0,
+                  msgData.messages.forEach((msg: LiveServerMessage, index: number) => {
+                    console.log(`📨 LiveServerMessage ${index + 1}:`, {
+                      hasServerContent: !!msg.serverContent,
+                      hasModelTurn: !!msg.serverContent?.modelTurn,
+                      hasParts: !!msg.serverContent?.modelTurn?.parts,
+                      turnComplete: msg.serverContent?.turnComplete,
+                      partsCount: msg.serverContent?.modelTurn?.parts?.length || 0,
+                    });
+
+                    // Process the message using proper LiveServerMessage format
+                    if (msg.serverContent?.modelTurn?.parts) {
+                      msg.serverContent.modelTurn.parts.forEach((part, partIndex) => {
+                        if (part.text) {
+                          console.log(
+                            `📝 Part ${partIndex + 1} Text:`,
+                            part.text.substring(0, 100) + "..."
+                          );
+                        }
+                        if (part.inlineData && part.inlineData.data) {
+                          console.log(`🔊 Part ${partIndex + 1} Audio:`, {
+                            mimeType: part.inlineData.mimeType,
+                            size: `${Math.round(part.inlineData.data.length / 1024)}KB`,
+                          });
+                        }
                       });
-
-                      // Process the message using proper LiveServerMessage format
-                      if (msg.serverContent?.modelTurn?.parts) {
-                        msg.serverContent.modelTurn.parts.forEach(
-                          (part, partIndex) => {
-                            if (part.text) {
-                              console.log(
-                                `📝 Part ${partIndex + 1} Text:`,
-                                part.text.substring(0, 100) + "..."
-                              );
-                            }
-                            if (part.inlineData && part.inlineData.data) {
-                              console.log(`🔊 Part ${partIndex + 1} Audio:`, {
-                                mimeType: part.inlineData.mimeType,
-                                size: `${Math.round(
-                                  part.inlineData.data.length / 1024
-                                )}KB`,
-                              });
-                            }
-                          }
-                        );
-                      }
-
-                      enqueueMessage(msg);
                     }
-                  );
+
+                    enqueueMessage(msg);
+                  });
                   setResponseCount((prev) => prev + msgData.messages.length);
                   setLastResponseTime(new Date());
                 }
@@ -302,12 +292,8 @@ export const useGeminiSessionSecure = () => {
           sessionId: sessionIdRef.current,
           hasImage: !!input.image,
           hasAudio: !!input.audio,
-          imageSize: input.image?.data
-            ? `${Math.round(input.image.data.length / 1024)}KB`
-            : "N/A",
-          audioSize: input.audio?.data
-            ? `${Math.round(input.audio.data.length / 1024)}KB`
-            : "N/A",
+          imageSize: input.image?.data ? `${Math.round(input.image.data.length / 1024)}KB` : "N/A",
+          audioSize: input.audio?.data ? `${Math.round(input.audio.data.length / 1024)}KB` : "N/A",
         });
 
         // Send input via secure API route

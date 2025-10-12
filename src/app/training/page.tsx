@@ -3,13 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -209,8 +203,7 @@ export default function TrainingPage() {
       {
         id: "4",
         title: "Business & Practice Management",
-        description:
-          "Learn to start and manage your own massage therapy practice.",
+        description: "Learn to start and manage your own massage therapy practice.",
         duration: "4 weeks",
         level: "Advanced",
         modules: 2,
@@ -243,9 +236,7 @@ export default function TrainingPage() {
 
     // Load user's enrolled courses
     if (user) {
-      const traineeProgress = JSON.parse(
-        localStorage.getItem("traineeProgress") || "{}"
-      );
+      const traineeProgress = JSON.parse(localStorage.getItem("traineeProgress") || "{}");
       const userProgress = traineeProgress[user.id] || {};
       setEnrolledCourses(Object.keys(userProgress));
     }
@@ -263,9 +254,7 @@ export default function TrainingPage() {
     }
 
     // Add course to user's progress
-    const traineeProgress = JSON.parse(
-      localStorage.getItem("traineeProgress") || "{}"
-    );
+    const traineeProgress = JSON.parse(localStorage.getItem("traineeProgress") || "{}");
     if (!traineeProgress[user.id]) {
       traineeProgress[user.id] = {};
     }
@@ -285,9 +274,7 @@ export default function TrainingPage() {
 
   const getProgress = (courseId: string) => {
     if (!user) return 0;
-    const traineeProgress = JSON.parse(
-      localStorage.getItem("traineeProgress") || "{}"
-    );
+    const traineeProgress = JSON.parse(localStorage.getItem("traineeProgress") || "{}");
     const userProgress = traineeProgress[user.id] || {};
     const courseProgress = userProgress[courseId] || [];
     const course = courses.find((c) => c.id === courseId);
@@ -324,22 +311,18 @@ export default function TrainingPage() {
             Professional Training Programs
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Comprehensive massage therapy education designed specifically for
-            visually impaired learners, with adaptive techniques and
-            personalized support.
+            Comprehensive massage therapy education designed specifically for visually impaired
+            learners, with adaptive techniques and personalized support.
           </p>
         </div>
 
         {/* Hero Section */}
         <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
           <div>
-            <h2 className="text-3xl font-bold text-gradient-healing mb-6">
-              Transform Your Future
-            </h2>
+            <h2 className="text-3xl font-bold text-gradient-healing mb-6">Transform Your Future</h2>
             <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-              Our specialized training programs combine traditional massage
-              therapy education with adaptive learning techniques, ensuring
-              every student can excel in their career.
+              Our specialized training programs combine traditional massage therapy education with
+              adaptive learning techniques, ensuring every student can excel in their career.
             </p>
 
             <div className="space-y-4 mb-8">
@@ -379,9 +362,7 @@ export default function TrainingPage() {
                 <div className="bg-gradient-primary p-3 rounded-2xl w-fit mx-auto mb-3">
                   <stat.icon className="h-6 w-6 text-primary-foreground" />
                 </div>
-                <div className="text-2xl font-bold text-gradient-primary mb-1">
-                  {stat.value}
-                </div>
+                <div className="text-2xl font-bold text-gradient-primary mb-1">{stat.value}</div>
                 <p className="text-sm text-muted-foreground">{stat.label}</p>
               </CardContent>
             </Card>
@@ -390,9 +371,7 @@ export default function TrainingPage() {
 
         {/* Course Catalog */}
         <div>
-          <h2 className="text-2xl font-bold text-gradient-healing mb-6">
-            Available Courses
-          </h2>
+          <h2 className="text-2xl font-bold text-gradient-healing mb-6">Available Courses</h2>
 
           <div className="grid md:grid-cols-2 gap-6 mb-16">
             {courses.map((course) => {
@@ -400,23 +379,16 @@ export default function TrainingPage() {
               const progress = getProgress(course.id);
 
               return (
-                <Card
-                  key={course.id}
-                  className="card-hover border-0 shadow-medium"
-                >
+                <Card key={course.id} className="card-hover border-0 shadow-medium">
                   <CardHeader>
                     <div className="flex items-start justify-between mb-2">
-                      <Badge className={getLevelColor(course.level)}>
-                        {course.level}
-                      </Badge>
+                      <Badge className={getLevelColor(course.level)}>{course.level}</Badge>
                       <div className="flex items-center text-sm text-muted-foreground">
                         <Clock className="h-4 w-4 mr-1" />
                         {course.duration}
                       </div>
                     </div>
-                    <CardTitle className="text-xl mb-2">
-                      {course.title}
-                    </CardTitle>
+                    <CardTitle className="text-xl mb-2">{course.title}</CardTitle>
                     <CardDescription className="text-base leading-relaxed">
                       {course.description}
                     </CardDescription>
@@ -426,33 +398,23 @@ export default function TrainingPage() {
                     <div className="flex items-center justify-between mb-4 text-sm">
                       <span className="flex items-center">
                         <BookOpen className="h-4 w-4 mr-1 text-healing" />
-                        {course.lessons.length} lessons • {course.modules}{" "}
-                        modules
+                        {course.lessons.length} lessons • {course.modules} modules
                       </span>
-                      <span className="text-muted-foreground">
-                        by {course.instructor}
-                      </span>
+                      <span className="text-muted-foreground">by {course.instructor}</span>
                     </div>
 
                     <div className="space-y-2 mb-4 text-sm">
                       <div className="flex items-center">
                         <FileText className="h-4 w-4 mr-2 text-primary" />
                         <span>
-                          {
-                            course.lessons.filter((l) => l.type === "theory")
-                              .length
-                          }{" "}
-                          Theory Lessons
+                          {course.lessons.filter((l) => l.type === "theory").length} Theory Lessons
                         </span>
                       </div>
                       <div className="flex items-center">
                         <Eye className="h-4 w-4 mr-2 text-healing" />
                         <span>
-                          {
-                            course.lessons.filter((l) => l.type === "practice")
-                              .length
-                          }{" "}
-                          Practical Exercises
+                          {course.lessons.filter((l) => l.type === "practice").length} Practical
+                          Exercises
                         </span>
                       </div>
                     </div>
@@ -479,9 +441,7 @@ export default function TrainingPage() {
                       </div>
                     ) : (
                       <Button
-                        onClick={() =>
-                          handleEnrollment(course.id, course.title)
-                        }
+                        onClick={() => handleEnrollment(course.id, course.title)}
                         className="w-full btn-healing"
                       >
                         Enroll Now
@@ -497,12 +457,10 @@ export default function TrainingPage() {
         {/* CTA Section */}
         <Card className="border-0 shadow-medium bg-gradient-hero text-white">
           <CardContent className="p-8 text-center">
-            <h3 className="text-3xl font-bold mb-4">
-              Ready to Start Your Journey?
-            </h3>
+            <h3 className="text-3xl font-bold mb-4">Ready to Start Your Journey?</h3>
             <p className="text-xl mb-6 opacity-90 max-w-2xl mx-auto">
-              Join hundreds of graduates who have transformed their lives
-              through professional massage therapy training.
+              Join hundreds of graduates who have transformed their lives through professional
+              massage therapy training.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button

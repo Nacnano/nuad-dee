@@ -28,9 +28,7 @@ console.log("✅ Created .env.example file");
 
 // Check if .env.local already exists
 if (fs.existsSync(envLocalPath)) {
-  console.log(
-    "⚠️  .env.local already exists. Please update it manually if needed."
-  );
+  console.log("⚠️  .env.local already exists. Please update it manually if needed.");
 } else {
   // Create .env.local file with placeholder
   fs.writeFileSync(envLocalPath, envExample);

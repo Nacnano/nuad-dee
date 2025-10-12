@@ -2,13 +2,7 @@
 
 import React, { useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Camera,
@@ -129,14 +123,7 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
     if (wasAnalyzing) {
       setTimeout(() => beginAnalysis(), 500);
     }
-  }, [
-    facingMode,
-    isStreaming,
-    isAnalyzing,
-    stopCamera,
-    startCamera,
-    beginAnalysis,
-  ]);
+  }, [facingMode, isStreaming, isAnalyzing, stopCamera, startCamera, beginAnalysis]);
 
   return (
     <div className="space-y-6 w-full flex flex-col items-center">
@@ -183,9 +170,7 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
                   </Button>
 
                   <Button
-                    onClick={() =>
-                      isAnalyzing ? endAnalysis() : beginAnalysis()
-                    }
+                    onClick={() => (isAnalyzing ? endAnalysis() : beginAnalysis())}
                     variant={isAnalyzing ? "destructive" : "default"}
                     disabled={isConnecting}
                     style={{ minWidth: 120 }}
@@ -234,9 +219,7 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
             <div className="mt-4 p-4 bg-muted/10 rounded-lg border border-muted">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs text-muted-foreground">
-                  🤖 Model responding...
-                </span>
+                <span className="text-xs text-muted-foreground">🤖 Model responding...</span>
               </div>
               <div className="max-h-48 overflow-y-auto space-y-2 text-sm">
                 {responseText.split("\n").map((line, index) => (
@@ -277,9 +260,7 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
               {/* Model Response Status */}
               {responseCount > 0 && (
                 <div className="text-center">
-                  <div className="text-sm text-muted-foreground mb-2">
-                    🤖 Model Response Status
-                  </div>
+                  <div className="text-sm text-muted-foreground mb-2">🤖 Model Response Status</div>
                   <div className="flex items-center justify-center gap-4 text-xs">
                     <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
                       📊 Responses: {responseCount}

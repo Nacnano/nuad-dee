@@ -2,13 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
@@ -44,9 +38,7 @@ export default function DashboardPage() {
 
     // Load courses and progress from localStorage
     const courses = JSON.parse(localStorage.getItem("courses") || "[]");
-    const traineeProgress = JSON.parse(
-      localStorage.getItem("traineeProgress") || "{}"
-    );
+    const traineeProgress = JSON.parse(localStorage.getItem("traineeProgress") || "{}");
     const userProgress = traineeProgress[user.id] || {};
 
     // Filter enrolled courses
@@ -82,9 +74,7 @@ export default function DashboardPage() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gradient-primary mb-4">
-            Learning Dashboard
-          </h1>
+          <h1 className="text-4xl font-bold text-gradient-primary mb-4">Learning Dashboard</h1>
           <p className="text-xl text-muted-foreground">
             Welcome back, {user.name}! Continue your massage therapy journey.
           </p>
@@ -110,10 +100,7 @@ export default function DashboardPage() {
                 <GraduationCap className="h-6 w-6 text-healing-foreground" />
               </div>
               <div className="text-2xl font-bold text-gradient-healing mb-1">
-                {enrolledCourses.reduce(
-                  (acc, course) => acc + getCompletedModules(course),
-                  0
-                )}
+                {enrolledCourses.reduce((acc, course) => acc + getCompletedModules(course), 0)}
               </div>
               <p className="text-sm text-muted-foreground">Modules Completed</p>
             </CardContent>
@@ -126,10 +113,8 @@ export default function DashboardPage() {
               </div>
               <div className="text-2xl font-bold text-gradient-success mb-1">
                 {Math.round(
-                  enrolledCourses.reduce(
-                    (acc, course) => acc + calculateProgress(course),
-                    0
-                  ) / Math.max(enrolledCourses.length, 1)
+                  enrolledCourses.reduce((acc, course) => acc + calculateProgress(course), 0) /
+                    Math.max(enrolledCourses.length, 1)
                 )}
                 %
               </div>
@@ -140,24 +125,17 @@ export default function DashboardPage() {
 
         {/* Enrolled Courses */}
         <div>
-          <h2 className="text-2xl font-bold text-gradient-healing mb-6">
-            Your Courses
-          </h2>
+          <h2 className="text-2xl font-bold text-gradient-healing mb-6">Your Courses</h2>
 
           {enrolledCourses.length === 0 ? (
             <Card className="border-0 shadow-soft">
               <CardContent className="p-8 text-center">
                 <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  No Courses Enrolled
-                </h3>
+                <h3 className="text-lg font-semibold mb-2">No Courses Enrolled</h3>
                 <p className="text-muted-foreground mb-4">
                   Start your learning journey by enrolling in a course.
                 </p>
-                <Button
-                  onClick={() => router.push("/training")}
-                  className="btn-healing"
-                >
+                <Button onClick={() => router.push("/training")} className="btn-healing">
                   Browse Courses
                 </Button>
               </CardContent>
@@ -169,16 +147,11 @@ export default function DashboardPage() {
                 const completedLessons = progress[course.id] || [];
 
                 return (
-                  <Card
-                    key={course.id}
-                    className="card-hover border-0 shadow-medium"
-                  >
+                  <Card key={course.id} className="card-hover border-0 shadow-medium">
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-xl mb-2">
-                            {course.title}
-                          </CardTitle>
+                          <CardTitle className="text-xl mb-2">{course.title}</CardTitle>
                           <CardDescription className="text-base">
                             {course.description}
                           </CardDescription>
@@ -186,8 +159,7 @@ export default function DashboardPage() {
                         <div className="text-right text-sm text-muted-foreground">
                           <div>{course.duration}</div>
                           <div>
-                            {getCompletedModules(course)} of {course.modules}{" "}
-                            modules
+                            {getCompletedModules(course)} of {course.modules} modules
                           </div>
                         </div>
                       </div>
@@ -198,20 +170,14 @@ export default function DashboardPage() {
                         <div>
                           <div className="flex items-center justify-between text-sm mb-2">
                             <span>Overall Progress</span>
-                            <span className="font-medium">
-                              {progressPercentage}%
-                            </span>
+                            <span className="font-medium">{progressPercentage}%</span>
                           </div>
-                          <Progress
-                            value={progressPercentage}
-                            className="h-2"
-                          />
+                          <Progress value={progressPercentage} className="h-2" />
                         </div>
 
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
                           <span>
-                            {completedLessons.length} of {course.lessons.length}{" "}
-                            lessons completed
+                            {completedLessons.length} of {course.lessons.length} lessons completed
                           </span>
                         </div>
 

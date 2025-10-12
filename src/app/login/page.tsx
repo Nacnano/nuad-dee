@@ -6,13 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Heart, Mail, Lock } from "lucide-react";
@@ -74,19 +68,13 @@ export default function LoginPage() {
               <Heart className="h-8 w-8 text-healing-foreground" />
             </div>
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gradient-primary">
-            Welcome Back
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to your Eye Touch account
-          </p>
+          <h2 className="mt-6 text-3xl font-bold text-gradient-primary">Welcome Back</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Sign in to your Eye Touch account</p>
         </div>
 
         <Card className="shadow-medium border-0">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">
-              Sign In
-            </CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">Sign In</CardTitle>
             <CardDescription className="text-center">
               Enter your credentials to access your account
             </CardDescription>
@@ -151,9 +139,7 @@ export default function LoginPage() {
                   <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-card text-muted-foreground">
-                    Demo Accounts
-                  </span>
+                  <span className="px-2 bg-card text-muted-foreground">Demo Accounts</span>
                 </div>
               </div>
 
@@ -169,9 +155,7 @@ export default function LoginPage() {
                     <span className="mr-3 text-lg">{account.avatar}</span>
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{account.role}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {account.email}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{account.email}</span>
                     </div>
                   </Button>
                 ))}

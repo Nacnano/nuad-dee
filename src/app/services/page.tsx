@@ -2,13 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -174,9 +168,8 @@ export default function ServicesPage() {
             Professional Massage Services
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Book sessions with our certified visually impaired massage
-            therapists. Each session supports meaningful employment and
-            exceptional healing.
+            Book sessions with our certified visually impaired massage therapists. Each session
+            supports meaningful employment and exceptional healing.
           </p>
         </div>
 
@@ -194,10 +187,7 @@ export default function ServicesPage() {
             </div>
 
             <div className="md:w-64">
-              <Select
-                value={specialtyFilter}
-                onValueChange={setSpecialtyFilter}
-              >
+              <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
                 <SelectTrigger>
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Filter by specialty" />
@@ -222,11 +212,7 @@ export default function ServicesPage() {
               title: "In-Home Sessions",
               description: "Professional massage in the comfort of your home",
               icon: "🏠",
-              features: [
-                "Premium equipment",
-                "Travel included",
-                "Flexible scheduling",
-              ],
+              features: ["Premium equipment", "Travel included", "Flexible scheduling"],
               startingPrice: 100,
             },
             {
@@ -280,31 +266,23 @@ export default function ServicesPage() {
             <Card className="text-center py-12 border-0 shadow-soft">
               <CardContent>
                 <p className="text-muted-foreground text-lg">
-                  No therapists found matching your criteria. Try adjusting your
-                  search.
+                  No therapists found matching your criteria. Try adjusting your search.
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredTherapists.map((therapist) => (
-                <Card
-                  key={therapist.id}
-                  className="card-hover border-0 shadow-medium"
-                >
+                <Card key={therapist.id} className="card-hover border-0 shadow-medium">
                   <CardHeader>
                     <div className="flex items-center space-x-3 mb-3">
                       <span className="text-3xl">{therapist.avatar}</span>
                       <div>
-                        <CardTitle className="text-lg">
-                          {therapist.name}
-                        </CardTitle>
+                        <CardTitle className="text-lg">{therapist.name}</CardTitle>
                         <div className="flex items-center space-x-2">
                           <div className="flex items-center">
                             <Star className="h-4 w-4 text-accent fill-accent" />
-                            <span className="text-sm font-medium ml-1">
-                              {therapist.rating}
-                            </span>
+                            <span className="text-sm font-medium ml-1">{therapist.rating}</span>
                           </div>
                           <span className="text-sm text-muted-foreground">
                             ({therapist.reviews} reviews)
@@ -315,11 +293,7 @@ export default function ServicesPage() {
 
                     <div className="flex flex-wrap gap-1 mb-3">
                       {therapist.specialties.map((specialty, idx) => (
-                        <Badge
-                          key={idx}
-                          variant="secondary"
-                          className="text-xs"
-                        >
+                        <Badge key={idx} variant="secondary" className="text-xs">
                           {specialty}
                         </Badge>
                       ))}
@@ -342,16 +316,12 @@ export default function ServicesPage() {
                       </div>
                       <div className="flex items-center">
                         <Clock className="h-4 w-4 text-healing mr-2" />
-                        <span>
-                          Available: {therapist.availability.join(", ")}
-                        </span>
+                        <span>Available: {therapist.availability.join(", ")}</span>
                       </div>
                     </div>
 
                     <div className="bg-background-secondary p-3 rounded-lg mb-4">
-                      <div className="text-xs text-muted-foreground mb-1">
-                        Starting rates:
-                      </div>
+                      <div className="text-xs text-muted-foreground mb-1">Starting rates:</div>
                       <div className="flex justify-between text-sm">
                         <span>60min: ${therapist.rates["60min"]}</span>
                         <span>90min: ${therapist.rates["90min"]}</span>
@@ -361,19 +331,13 @@ export default function ServicesPage() {
 
                     <div className="flex space-x-2">
                       <Button
-                        onClick={() =>
-                          handleBooking(therapist.id, therapist.name)
-                        }
+                        onClick={() => handleBooking(therapist.id, therapist.name)}
                         className="flex-1 btn-healing"
                       >
                         <Calendar className="h-4 w-4 mr-1" />
                         Book Session
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="hover:bg-card-hover"
-                      >
+                      <Button variant="outline" size="sm" className="hover:bg-card-hover">
                         <User className="h-4 w-4" />
                       </Button>
                     </div>
@@ -387,12 +351,10 @@ export default function ServicesPage() {
         {/* Contact Section */}
         <Card className="border-0 shadow-medium bg-gradient-soft">
           <CardContent className="p-8 text-center">
-            <h3 className="text-2xl font-bold text-gradient-primary mb-4">
-              Need Help Choosing?
-            </h3>
+            <h3 className="text-2xl font-bold text-gradient-primary mb-4">Need Help Choosing?</h3>
             <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Our customer service team can help you find the perfect therapist
-              for your specific needs and preferences.
+              Our customer service team can help you find the perfect therapist for your specific
+              needs and preferences.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button className="btn-healing">

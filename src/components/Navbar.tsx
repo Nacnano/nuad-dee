@@ -26,9 +26,7 @@ const Navbar = () => {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
             <img src="/favicon.ico" alt="Eye Touch Logo" className="h-8 w-8" />
-            <span className="text-xl font-bold text-gradient-primary">
-              Eye Touch
-            </span>
+            <span className="text-xl font-bold text-gradient-primary">Eye Touch</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -127,11 +125,7 @@ const Navbar = () => {
               onClick={() => setIsOpen(!isOpen)}
               className="inline-flex items-center justify-center p-2 rounded-lg text-foreground hover:bg-card-hover transition-colors duration-200"
             >
-              {isOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
+              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
         </div>

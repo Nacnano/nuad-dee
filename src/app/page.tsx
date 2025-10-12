@@ -91,8 +91,8 @@ export default function HomePage() {
             </h1>
 
             <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Experience exceptional therapeutic massage while supporting
-              meaningful employment and social inclusion in our community.
+              Experience exceptional therapeutic massage while supporting meaningful employment and
+              social inclusion in our community.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -133,12 +133,8 @@ export default function HomePage() {
                   <div className="bg-gradient-primary p-3 rounded-2xl w-fit mx-auto mb-4">
                     <stat.icon className="h-8 w-8 text-primary-foreground" />
                   </div>
-                  <div className="text-3xl font-bold text-gradient-primary mb-2">
-                    {stat.number}
-                  </div>
-                  <p className="text-muted-foreground font-medium">
-                    {stat.label}
-                  </p>
+                  <div className="text-3xl font-bold text-gradient-primary mb-2">{stat.number}</div>
+                  <p className="text-muted-foreground font-medium">{stat.label}</p>
                 </CardContent>
               </Card>
             ))}
@@ -150,9 +146,7 @@ export default function HomePage() {
       <section className="py-20 bg-gradient-soft">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 animate-on-scroll">
-            <h2 className="text-4xl font-bold text-gradient-primary mb-4">
-              Our Services
-            </h2>
+            <h2 className="text-4xl font-bold text-gradient-primary mb-4">Our Services</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Professional therapeutic services tailored to your wellness needs
             </p>
@@ -169,23 +163,18 @@ export default function HomePage() {
               },
               {
                 title: "Corporate Wellness",
-                description:
-                  "On-site massage services for workplace wellness programs",
+                description: "On-site massage services for workplace wellness programs",
                 icon: "🏢",
                 price: "Custom pricing",
               },
               {
                 title: "Home Visits",
-                description:
-                  "Convenient in-home massage services in the comfort of your space",
+                description: "Convenient in-home massage services in the comfort of your space",
                 icon: "🏠",
                 price: "From $100",
               },
             ].map((service, index) => (
-              <Card
-                key={index}
-                className="card-hover animate-on-scroll border-0 shadow-medium"
-              >
+              <Card key={index} className="card-hover animate-on-scroll border-0 shadow-medium">
                 <CardContent className="p-8">
                   <div className="text-5xl mb-4">{service.icon}</div>
                   <h3 className="text-2xl font-bold mb-3">{service.title}</h3>
@@ -214,9 +203,9 @@ export default function HomePage() {
                 Professional Training Programs
               </h2>
               <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-                We provide comprehensive massage therapy training specifically
-                designed for visually impaired individuals, combining
-                traditional techniques with adaptive learning methods.
+                We provide comprehensive massage therapy training specifically designed for visually
+                impaired individuals, combining traditional techniques with adaptive learning
+                methods.
               </p>
 
               <div className="space-y-4 mb-8">
@@ -265,17 +254,11 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <Card
-                key={index}
-                className="card-hover animate-on-scroll border-0 shadow-medium"
-              >
+              <Card key={index} className="card-hover animate-on-scroll border-0 shadow-medium">
                 <CardContent className="p-8">
                   <div className="flex items-center mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className="h-5 w-5 text-accent fill-accent"
-                      />
+                      <Star key={i} className="h-5 w-5 text-accent fill-accent" />
                     ))}
                   </div>
                   <p className="text-muted-foreground mb-6 leading-relaxed italic">
@@ -285,9 +268,7 @@ export default function HomePage() {
                     <span className="text-2xl">{testimonial.avatar}</span>
                     <div>
                       <h4 className="font-semibold">{testimonial.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {testimonial.role}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -301,12 +282,9 @@ export default function HomePage() {
       <section className="py-20 bg-gradient-hero relative">
         <div className="absolute inset-0 bg-primary/10"></div>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Ready to Experience Healing Touch?
-          </h2>
+          <h2 className="text-4xl font-bold text-white mb-6">Ready to Experience Healing Touch?</h2>
           <p className="text-xl text-white/90 mb-8 leading-relaxed">
-            Book your session today and support meaningful employment in our
-            community
+            Book your session today and support meaningful employment in our community
           </p>
           <Button asChild size="lg" className="btn-hero text-lg px-8 py-4">
             <Link href="/services">Get Started Now</Link>

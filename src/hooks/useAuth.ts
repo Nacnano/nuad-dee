@@ -43,9 +43,7 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
-);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function useAuth() {
   const context = useContext(AuthContext);
@@ -109,9 +107,5 @@ export function useAuthProvider() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const authValue = useAuthProvider();
 
-  return React.createElement(
-    AuthContext.Provider,
-    { value: authValue },
-    children
-  );
+  return React.createElement(AuthContext.Provider, { value: authValue }, children);
 }

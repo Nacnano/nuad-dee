@@ -8,15 +8,10 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Eye Touch - Massage Training Platform",
-  description:
-    "A comprehensive platform for training visually impaired masseurs",
+  description: "A comprehensive platform for training visually impaired masseurs",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>

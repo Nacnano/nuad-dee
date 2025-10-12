@@ -46,10 +46,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Gemini API route error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -94,8 +91,7 @@ async function handleCreateSession(data: any) {
               if (part.text) {
                 console.log(
                   `💬 Part ${index + 1} Text:`,
-                  part.text.substring(0, 100) +
-                    (part.text.length > 100 ? "..." : "")
+                  part.text.substring(0, 100) + (part.text.length > 100 ? "..." : "")
                 );
               }
               if (part.inlineData && part.inlineData.data) {
@@ -105,10 +101,7 @@ async function handleCreateSession(data: any) {
                 });
               }
               if (part.fileData) {
-                console.log(
-                  `📁 Part ${index + 1} File:`,
-                  part.fileData.fileUri
-                );
+                console.log(`📁 Part ${index + 1} File:`, part.fileData.fileUri);
               }
             });
           }
@@ -153,10 +146,7 @@ async function handleSendInput(data: any) {
       message: "Input sent successfully",
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to send input" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || "Failed to send input" }, { status: 500 });
   }
 }
 
@@ -174,10 +164,7 @@ async function handleGetMessages(data: any) {
       messages,
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to get messages" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || "Failed to get messages" }, { status: 500 });
   }
 }
 

@@ -40,10 +40,11 @@ export const useMediaCapture = () => {
         setFacingMode(targetFacing);
 
         if (!audioContextRef.current) {
-          audioContextRef.current = new (window.AudioContext ||
-            (window as any).webkitAudioContext)({
-            sampleRate: AUDIO_CONFIG.sampleRate,
-          });
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)(
+            {
+              sampleRate: AUDIO_CONFIG.sampleRate,
+            }
+          );
         }
 
         return stream;
@@ -84,39 +85,35 @@ export const useMediaCapture = () => {
     return canvas.toDataURL("image/jpeg", 0.8).split(",")[1];
   }, []);
 
-  const startAudioProcessing = useCallback(
-    (onAudioData: (data: string) => void) => {
-      if (!audioContextRef.current || !streamRef.current) return;
+  const startAudioProcessing = useCallback((onAudioData: (data: string) => void) => {
+    if (!audioContextRef.current || !streamRef.current) return;
 
-      try {
-        const audioTrack = streamRef.current.getAudioTracks()[0];
-        if (!audioTrack) return;
+    try {
+      const audioTrack = streamRef.current.getAudioTracks()[0];
+      if (!audioTrack) return;
 
-        const singleStream = new MediaStream([audioTrack]);
-        audioSourceRef.current =
-          audioContextRef.current.createMediaStreamSource(singleStream);
-        processorRef.current = audioContextRef.current.createScriptProcessor(
-          AUDIO_CONFIG.processorBufferSize,
-          1,
-          1
-        );
+      const singleStream = new MediaStream([audioTrack]);
+      audioSourceRef.current = audioContextRef.current.createMediaStreamSource(singleStream);
+      processorRef.current = audioContextRef.current.createScriptProcessor(
+        AUDIO_CONFIG.processorBufferSize,
+        1,
+        1
+      );
 
-        processorRef.current.onaudioprocess = (e: AudioProcessingEvent) => {
-          const input = e.inputBuffer.getChannelData(0);
-          const int16 = float32ToInt16(input);
-          const uint8 = new Uint8Array(int16.buffer);
-          const base64 = uint8ToBase64(uint8);
-          onAudioData(base64);
-        };
+      processorRef.current.onaudioprocess = (e: AudioProcessingEvent) => {
+        const input = e.inputBuffer.getChannelData(0);
+        const int16 = float32ToInt16(input);
+        const uint8 = new Uint8Array(int16.buffer);
+        const base64 = uint8ToBase64(uint8);
+        onAudioData(base64);
+      };
 
-        audioSourceRef.current.connect(processorRef.current);
-        processorRef.current.connect(audioContextRef.current.destination);
-      } catch (err) {
-        console.error("Audio processing error:", err);
-      }
-    },
-    []
-  );
+      audioSourceRef.current.connect(processorRef.current);
+      processorRef.current.connect(audioContextRef.current.destination);
+    } catch (err) {
+      console.error("Audio processing error:", err);
+    }
+  }, []);
 
   const stopAudioProcessing = useCallback(() => {
     if (processorRef.current) {

@@ -3,24 +3,11 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import {
-  ArrowLeft,
-  CheckCircle,
-  PlayCircle,
-  AlertCircle,
-  FileText,
-  Eye,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle, PlayCircle, AlertCircle, FileText, Eye } from "lucide-react";
 import ClientGeminiPostureAnalysis from "@/components/ClientGeminiPostureAnalysis";
 
 interface Lesson {
@@ -70,9 +57,7 @@ export default function LessonDetailPage() {
       return;
     }
 
-    const foundLesson = foundCourse.lessons.find(
-      (l: Lesson) => l.id === lessonId
-    );
+    const foundLesson = foundCourse.lessons.find((l: Lesson) => l.id === lessonId);
 
     if (!foundLesson) {
       router.push(`/training/${courseId}`);
@@ -83,9 +68,7 @@ export default function LessonDetailPage() {
     setLesson(foundLesson);
 
     // Check if lesson is completed
-    const traineeProgress = JSON.parse(
-      localStorage.getItem("traineeProgress") || "{}"
-    );
+    const traineeProgress = JSON.parse(localStorage.getItem("traineeProgress") || "{}");
     const userProgress = traineeProgress[user.id] || {};
     const courseProgress = userProgress[courseId] || [];
 
@@ -95,9 +78,7 @@ export default function LessonDetailPage() {
   const markAsComplete = () => {
     if (!user || !courseId || !lessonId) return;
 
-    const traineeProgress = JSON.parse(
-      localStorage.getItem("traineeProgress") || "{}"
-    );
+    const traineeProgress = JSON.parse(localStorage.getItem("traineeProgress") || "{}");
     if (!traineeProgress[user.id]) {
       traineeProgress[user.id] = {};
     }
@@ -158,10 +139,7 @@ export default function LessonDetailPage() {
 
       {/* Completion Button */}
       <div className="flex justify-between items-center">
-        <Button
-          variant="outline"
-          onClick={() => router.push(`/training/${courseId}`)}
-        >
+        <Button variant="outline" onClick={() => router.push(`/training/${courseId}`)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Course
         </Button>
@@ -221,13 +199,10 @@ export default function LessonDetailPage() {
             <div className="flex items-start space-x-3">
               <AlertCircle className="h-5 w-5 text-healing mt-0.5" />
               <div>
-                <h4 className="font-medium text-healing mb-1">
-                  Auto-completion
-                </h4>
+                <h4 className="font-medium text-healing mb-1">Auto-completion</h4>
                 <p className="text-sm text-muted-foreground">
-                  This practical lesson will be automatically marked as complete
-                  once you achieve a posture score of 80% or higher during
-                  real-time analysis.
+                  This practical lesson will be automatically marked as complete once you achieve a
+                  posture score of 80% or higher during real-time analysis.
                 </p>
               </div>
             </div>
@@ -237,10 +212,7 @@ export default function LessonDetailPage() {
 
       {/* Navigation */}
       <div className="flex justify-between items-center">
-        <Button
-          variant="outline"
-          onClick={() => router.push(`/training/${courseId}`)}
-        >
+        <Button variant="outline" onClick={() => router.push(`/training/${courseId}`)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Course
         </Button>
@@ -275,22 +247,16 @@ export default function LessonDetailPage() {
                     : "bg-healing/10 text-healing border-healing/20"
                 }
               >
-                {lesson.type === "theory"
-                  ? "Theory Lesson"
-                  : "Practical Exercise"}
+                {lesson.type === "theory" ? "Theory Lesson" : "Practical Exercise"}
               </Badge>
               <span className="text-sm text-muted-foreground">
                 Module {lesson.moduleNumber} • {lesson.duration}
               </span>
             </div>
 
-            <CardTitle className="text-3xl text-gradient-primary mb-2">
-              {lesson.title}
-            </CardTitle>
+            <CardTitle className="text-3xl text-gradient-primary mb-2">{lesson.title}</CardTitle>
 
-            <CardDescription className="text-lg">
-              {lesson.description}
-            </CardDescription>
+            <CardDescription className="text-lg">{lesson.description}</CardDescription>
 
             <div className="pt-4 text-sm text-muted-foreground">
               <span>Course: {course.title}</span>
@@ -299,9 +265,7 @@ export default function LessonDetailPage() {
         </Card>
 
         {/* Lesson Content */}
-        {lesson.type === "theory"
-          ? renderTheoryContent()
-          : renderPracticeContent()}
+        {lesson.type === "theory" ? renderTheoryContent() : renderPracticeContent()}
       </div>
     </div>
   );

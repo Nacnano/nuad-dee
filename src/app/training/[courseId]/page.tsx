@@ -3,13 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
@@ -66,9 +60,7 @@ export default function CourseDetailPage() {
     setCourse(foundCourse);
 
     if (user) {
-      const traineeProgress = JSON.parse(
-        localStorage.getItem("traineeProgress") || "{}"
-      );
+      const traineeProgress = JSON.parse(localStorage.getItem("traineeProgress") || "{}");
       const userProgress = traineeProgress[user.id] || {};
       const courseProgress = userProgress[courseId] || [];
 
@@ -83,9 +75,7 @@ export default function CourseDetailPage() {
       return;
     }
 
-    const traineeProgress = JSON.parse(
-      localStorage.getItem("traineeProgress") || "{}"
-    );
+    const traineeProgress = JSON.parse(localStorage.getItem("traineeProgress") || "{}");
     if (!traineeProgress[user.id]) {
       traineeProgress[user.id] = {};
     }
@@ -131,24 +121,23 @@ export default function CourseDetailPage() {
   }
 
   // Group lessons by module
-  const moduleGroups = course.lessons.reduce((acc, lesson) => {
-    const moduleKey = `Module ${lesson.moduleNumber}`;
-    if (!acc[moduleKey]) {
-      acc[moduleKey] = [];
-    }
-    acc[moduleKey].push(lesson);
-    return acc;
-  }, {} as Record<string, Lesson[]>);
+  const moduleGroups = course.lessons.reduce(
+    (acc, lesson) => {
+      const moduleKey = `Module ${lesson.moduleNumber}`;
+      if (!acc[moduleKey]) {
+        acc[moduleKey] = [];
+      }
+      acc[moduleKey].push(lesson);
+      return acc;
+    },
+    {} as Record<string, Lesson[]>
+  );
 
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Back Button */}
-        <Button
-          variant="ghost"
-          onClick={() => router.push("/training")}
-          className="mb-6"
-        >
+        <Button variant="ghost" onClick={() => router.push("/training")} className="mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Courses
         </Button>
@@ -157,18 +146,14 @@ export default function CourseDetailPage() {
         <Card className="border-0 shadow-medium mb-8">
           <CardHeader>
             <div className="flex items-start justify-between mb-4">
-              <Badge className={getLevelColor(course.level)}>
-                {course.level}
-              </Badge>
+              <Badge className={getLevelColor(course.level)}>{course.level}</Badge>
               <div className="flex items-center text-sm text-muted-foreground">
                 <Clock className="h-4 w-4 mr-1" />
                 {course.duration}
               </div>
             </div>
 
-            <CardTitle className="text-3xl text-gradient-primary mb-4">
-              {course.title}
-            </CardTitle>
+            <CardTitle className="text-3xl text-gradient-primary mb-4">{course.title}</CardTitle>
 
             <CardDescription className="text-lg leading-relaxed">
               {course.description}
@@ -194,8 +179,7 @@ export default function CourseDetailPage() {
                 </div>
                 <Progress value={calculateProgress()} className="h-2" />
                 <div className="text-sm text-muted-foreground">
-                  {completedLessons.length} of {course.lessons.length} lessons
-                  completed
+                  {completedLessons.length} of {course.lessons.length} lessons completed
                 </div>
               </div>
             </CardContent>
@@ -206,9 +190,7 @@ export default function CourseDetailPage() {
         {!isEnrolled && (
           <Card className="border-0 shadow-soft mb-8 bg-gradient-hero text-white">
             <CardContent className="p-6 text-center">
-              <h3 className="text-xl font-bold mb-2">
-                Ready to start learning?
-              </h3>
+              <h3 className="text-xl font-bold mb-2">Ready to start learning?</h3>
               <p className="mb-4 opacity-90">
                 Enroll now to access all lessons and track your progress.
               </p>
@@ -228,12 +210,8 @@ export default function CourseDetailPage() {
           {Object.entries(moduleGroups).map(([moduleTitle, lessons]) => (
             <Card key={moduleTitle} className="border-0 shadow-soft">
               <CardHeader>
-                <CardTitle className="text-xl text-gradient-healing">
-                  {moduleTitle}
-                </CardTitle>
-                <CardDescription>
-                  {lessons.length} lessons in this module
-                </CardDescription>
+                <CardTitle className="text-xl text-gradient-healing">{moduleTitle}</CardTitle>
+                <CardDescription>{lessons.length} lessons in this module</CardDescription>
               </CardHeader>
 
               <CardContent>
@@ -282,9 +260,7 @@ export default function CourseDetailPage() {
                                     : "border-healing/20 text-healing"
                                 }`}
                               >
-                                {lesson.type === "theory"
-                                  ? "Theory"
-                                  : "Practice"}
+                                {lesson.type === "theory" ? "Theory" : "Practice"}
                               </Badge>
                               {isCompleted && (
                                 <Badge className="bg-success/10 text-success border-success/20 text-xs">
@@ -294,9 +270,7 @@ export default function CourseDetailPage() {
                             </div>
                             <p
                               className={`text-sm ${
-                                canAccess
-                                  ? "text-muted-foreground"
-                                  : "text-muted-foreground/70"
+                                canAccess ? "text-muted-foreground" : "text-muted-foreground/70"
                               }`}
                             >
                               {lesson.description}
@@ -306,9 +280,7 @@ export default function CourseDetailPage() {
 
                         <div
                           className={`text-sm ${
-                            canAccess
-                              ? "text-muted-foreground"
-                              : "text-muted-foreground/70"
+                            canAccess ? "text-muted-foreground" : "text-muted-foreground/70"
                           }`}
                         >
                           <Clock className="h-4 w-4 inline mr-1" />

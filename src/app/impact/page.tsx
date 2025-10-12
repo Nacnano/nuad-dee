@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -130,42 +124,30 @@ export default function ImpactPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gradient-primary mb-4">
-            Social Impact & Results
-          </h1>
+          <h1 className="text-4xl font-bold text-gradient-primary mb-4">Social Impact & Results</h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Measuring our success through lives transformed, communities served,
-            and barriers broken in the massage therapy industry.
+            Measuring our success through lives transformed, communities served, and barriers broken
+            in the massage therapy industry.
           </p>
         </div>
 
         {/* Key Metrics */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {impactStats.map((stat, index) => (
-            <Card
-              key={index}
-              className="card-hover border-0 shadow-medium text-center"
-            >
+            <Card key={index} className="card-hover border-0 shadow-medium text-center">
               <CardContent className="p-6">
                 <div className="bg-gradient-primary p-3 rounded-2xl w-fit mx-auto mb-4">
                   <stat.icon className={`h-8 w-8 text-primary-foreground`} />
                 </div>
-                <div className="text-3xl font-bold text-gradient-primary mb-1">
-                  {stat.value}
-                </div>
+                <div className="text-3xl font-bold text-gradient-primary mb-1">{stat.value}</div>
                 <div className="flex items-center justify-center space-x-2 mb-2">
-                  <Badge
-                    variant="outline"
-                    className="text-green-600 border-green-200"
-                  >
+                  <Badge variant="outline" className="text-green-600 border-green-200">
                     <TrendingUp className="h-3 w-3 mr-1" />
                     {stat.change}
                   </Badge>
                 </div>
                 <h3 className="font-semibold mb-1">{stat.title}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {stat.description}
-                </p>
+                <p className="text-sm text-muted-foreground">{stat.description}</p>
               </CardContent>
             </Card>
           ))}
@@ -192,29 +174,21 @@ export default function ImpactPage() {
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span>Participants</span>
-                        <span className="font-semibold">
-                          {program.participants}
-                        </span>
+                        <span className="font-semibold">{program.participants}</span>
                       </div>
                     </div>
 
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span>Completion Rate</span>
-                        <span className="font-semibold">
-                          {program.completion}%
-                        </span>
+                        <span className="font-semibold">{program.completion}%</span>
                       </div>
                       <Progress value={program.completion} className="h-2" />
                     </div>
 
                     <div className="bg-background-secondary p-3 rounded-lg">
-                      <div className="text-sm text-muted-foreground mb-1">
-                        Key Outcome
-                      </div>
-                      <div className="font-semibold text-gradient-healing">
-                        {program.outcomes}
-                      </div>
+                      <div className="text-sm text-muted-foreground mb-1">Key Outcome</div>
+                      <div className="font-semibold text-gradient-healing">{program.outcomes}</div>
                     </div>
                   </div>
                 </CardContent>
@@ -236,9 +210,7 @@ export default function ImpactPage() {
                   <div className="flex items-center space-x-3">
                     <span className="text-3xl">{testimonial.avatar}</span>
                     <div>
-                      <CardTitle className="text-lg">
-                        {testimonial.name}
-                      </CardTitle>
+                      <CardTitle className="text-lg">{testimonial.name}</CardTitle>
                       <CardDescription>
                         {testimonial.role} at {testimonial.company}
                       </CardDescription>
@@ -263,13 +235,10 @@ export default function ImpactPage() {
         {/* Partner Network */}
         <section className="mb-16">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gradient-primary mb-4">
-              Our Partner Network
-            </h2>
+            <h2 className="text-3xl font-bold text-gradient-primary mb-4">Our Partner Network</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Working with leading organizations to create inclusive employment
-              opportunities and expand access to quality massage therapy
-              services.
+              Working with leading organizations to create inclusive employment opportunities and
+              expand access to quality massage therapy services.
             </p>
           </div>
 
@@ -283,17 +252,11 @@ export default function ImpactPage() {
                   >
                     <div>
                       <h4 className="font-semibold">{partner.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {partner.type}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{partner.type}</p>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-medium">
-                        {partner.employees}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        employees
-                      </div>
+                      <div className="text-sm font-medium">{partner.employees}</div>
+                      <div className="text-xs text-muted-foreground">employees</div>
                     </div>
                   </div>
                 ))}
@@ -306,9 +269,7 @@ export default function ImpactPage() {
         <section className="mb-16">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-3xl font-bold text-gradient-primary mb-6">
-                2025 Goals
-              </h2>
+              <h2 className="text-3xl font-bold text-gradient-primary mb-6">2025 Goals</h2>
               <div className="space-y-6">
                 {[
                   { goal: "Train 500 new therapists", progress: 65 },
@@ -319,9 +280,7 @@ export default function ImpactPage() {
                   <div key={index} className="space-y-2">
                     <div className="flex justify-between">
                       <span className="font-medium">{item.goal}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {item.progress}%
-                      </span>
+                      <span className="text-sm text-muted-foreground">{item.progress}%</span>
                     </div>
                     <Progress value={item.progress} className="h-2" />
                   </div>
@@ -333,15 +292,12 @@ export default function ImpactPage() {
               <CardContent className="p-8">
                 <div className="flex items-center mb-4">
                   <Target className="h-8 w-8 text-healing mr-3" />
-                  <h3 className="text-2xl font-bold text-gradient-healing">
-                    Our Mission
-                  </h3>
+                  <h3 className="text-2xl font-bold text-gradient-healing">Our Mission</h3>
                 </div>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  To create a world where visual impairment is not a barrier to
-                  meaningful employment, where skilled massage therapists can
-                  thrive professionally while providing exceptional healing
-                  services to their communities.
+                  To create a world where visual impairment is not a barrier to meaningful
+                  employment, where skilled massage therapists can thrive professionally while
+                  providing exceptional healing services to their communities.
                 </p>
                 <div className="flex items-center space-x-4 text-sm">
                   <div className="flex items-center">
@@ -363,9 +319,8 @@ export default function ImpactPage() {
           <CardContent className="p-8 text-center">
             <h3 className="text-3xl font-bold mb-4">Join Our Impact</h3>
             <p className="text-xl mb-6 opacity-90 max-w-2xl mx-auto">
-              Whether you&apos;re looking to start your career, hire skilled
-              therapists, or support our mission, there&apos;s a place for you
-              in our community.
+              Whether you&apos;re looking to start your career, hire skilled therapists, or support
+              our mission, there&apos;s a place for you in our community.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
