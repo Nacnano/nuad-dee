@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { geminiConfig } from "@/lib/config";
 import { useMediaCapture } from "@/hooks/useMediaCapture";
-import { useGeminiSession } from "@/hooks/useGeminiSession";
+import { useGeminiSessionSecure } from "@/hooks/useGeminiSessionSecure";
 import { FacingMode } from "@/lib/media-utils";
 
 const ClientGeminiPostureAnalysis: React.FC = () => {
@@ -48,18 +48,17 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
     isConnecting,
     error: sessionError,
     responseText,
+    lastResponseTime,
+    responseCount,
     handleTurnsOnce,
     startSession,
     stopSession,
     sendInput,
-  } = useGeminiSession();
+  } = useGeminiSessionSecure();
 
   const error = mediaError || sessionError;
 
   useEffect(() => {
-    if (!geminiConfig.apiKey) {
-      console.error("Gemini API key not configured");
-    }
     return () => {
       if (captureIntervalRef.current) {
         clearInterval(captureIntervalRef.current);
@@ -155,7 +154,6 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
             <div className="flex flex-wrap gap-2 justify-center">
               <Button
                 onClick={() => (isStreaming ? stopCamera() : startCamera())}
-                disabled={!geminiConfig.apiKey}
                 className={isStreaming ? "btn-destructive" : "btn-healing"}
                 style={{ minWidth: 120 }}
               >
@@ -235,6 +233,12 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
 
           {isStreaming && isAnalyzing && responseText && (
             <div className="mt-4 p-4 bg-muted/10 rounded-lg border border-muted">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-muted-foreground">
+                  🤖 Model responding...
+                </span>
+              </div>
               <div className="max-h-48 overflow-y-auto space-y-2 text-sm">
                 {responseText.split("\n").map((line, index) => (
                   <p key={index}>{line}</p>
@@ -244,30 +248,54 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
           )}
 
           {isStreaming && (
-            <div className="mt-4 flex items-center justify-center gap-4 flex-wrap">
-              <Badge
-                className={
-                  isAnalyzing
-                    ? "bg-success/10 text-success border-success/20"
-                    : "bg-primary/10 text-primary border-primary/20"
-                }
-              >
-                {isAnalyzing ? (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    AI Analyzing
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    AI Ready
-                  </>
-                )}
-              </Badge>
-              <Badge className="bg-healing/10 text-healing border-healing/20">
-                <Mic className="h-4 w-4 mr-1" />
-                Audio On
-              </Badge>
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-center gap-4 flex-wrap">
+                <Badge
+                  className={
+                    isAnalyzing
+                      ? "bg-success/10 text-success border-success/20"
+                      : "bg-primary/10 text-primary border-primary/20"
+                  }
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      AI Analyzing
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      AI Ready
+                    </>
+                  )}
+                </Badge>
+                <Badge className="bg-healing/10 text-healing border-healing/20">
+                  <Mic className="h-4 w-4 mr-1" />
+                  Audio On
+                </Badge>
+              </div>
+
+              {/* Model Response Status */}
+              {responseCount > 0 && (
+                <div className="text-center">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    🤖 Model Response Status
+                  </div>
+                  <div className="flex items-center justify-center gap-4 text-xs">
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      📊 Responses: {responseCount}
+                    </span>
+                    {lastResponseTime && (
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                        🕒 Last: {lastResponseTime.toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Check browser console for detailed model responses
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
