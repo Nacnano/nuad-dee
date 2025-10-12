@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 
+// Force Node.js runtime (required for ws and buffer packages)
+export const runtime = 'nodejs';
+// Prevent static optimization
+export const dynamic = 'force-dynamic';
+
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 if (!GEMINI_API_KEY) {
