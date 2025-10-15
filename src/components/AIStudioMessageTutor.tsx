@@ -122,7 +122,7 @@ const ThaiMassageTutor: React.FC = () => {
       setIsCameraOn(true);
       setStatusMessage("Initializing AI Tutor...");
 
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
 
       // FIX: Cast window to 'any' to allow 'webkitAudioContext' for browser compatibility.
       audioContextsRef.current.input = new (window.AudioContext ||
