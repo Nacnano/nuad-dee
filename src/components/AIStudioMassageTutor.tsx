@@ -26,7 +26,7 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
   });
 };
 
-const ThaiMassageTutor: React.FC = () => {
+const AIStudioMassageTutor: React.FC = () => {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
@@ -282,7 +282,7 @@ const ThaiMassageTutor: React.FC = () => {
   }, []);
 
   return (
-    <div className="bg-gray-800 rounded-lg shadow-2xl p-6 w-full flex flex-col md:flex-row gap-6 h-[80vh]">
+    <div className="bg-muted/10 rounded-lg shadow-soft p-6 w-full flex flex-col md:flex-row gap-6 h-[80vh] border border-muted">
       <div className="w-full md:w-2/3 flex flex-col relative">
         <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
           <video
@@ -300,12 +300,12 @@ const ThaiMassageTutor: React.FC = () => {
             </div>
           )}
         </div>
-        <div className="flex items-center justify-between mt-4 p-2 bg-gray-700 rounded-lg">
-          <div className="flex items-center gap-2 text-sm text-gray-300">
+        <div className="flex items-center justify-between mt-4 p-2 bg-muted/20 rounded-lg">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {isSessionActive ? (
-              <Mic size={16} className="text-green-400" />
+              <Mic size={16} className="text-success" />
             ) : (
-              <MicOff size={16} className="text-red-400" />
+              <MicOff size={16} className="text-destructive" />
             )}
             <span>{statusMessage}</span>
           </div>
@@ -313,13 +313,13 @@ const ThaiMassageTutor: React.FC = () => {
             <button
               onClick={switchCamera}
               disabled={isSessionActive}
-              className="p-2 rounded-full bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-full bg-muted/30 hover:bg-muted/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <RefreshCw size={20} />
             </button>
             <button
               onClick={toggleSession}
-              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-colors ${isSessionActive ? "bg-red-600 hover:bg-red-700" : "bg-teal-600 hover:bg-teal-700"}`}
+              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-colors ${isSessionActive ? "bg-destructive hover:bg-destructive/90" : "btn-healing"}`}
             >
               {isSessionActive ? <VideoOff size={20} /> : <Video size={20} />}
               {isSessionActive ? "Stop Session" : "Start Session"}
@@ -327,19 +327,21 @@ const ThaiMassageTutor: React.FC = () => {
           </div>
         </div>
         {error && (
-          <div className="mt-2 p-3 bg-red-900 border border-red-700 text-red-200 rounded-lg flex items-center gap-2">
+          <div className="mt-2 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg flex items-center gap-2">
             <AlertTriangle size={20} />
             <span>{error}</span>
           </div>
         )}
       </div>
-      <div className="w-full md:w-1/3 flex flex-col bg-gray-900 rounded-lg">
-        <h2 className="text-lg font-semibold p-4 border-b border-gray-700 text-teal-300">
+      <div className="w-full md:w-1/3 flex flex-col bg-muted/10 rounded-lg border border-muted">
+        <h2 className="text-lg font-semibold p-4 border-b border-muted text-gradient-healing">
           Live Transcript
         </h2>
         <div className="flex-grow p-4 overflow-y-auto space-y-4">
           {transcripts.length === 0 && (
-            <div className="text-center text-gray-500 pt-10">Transcript will appear here...</div>
+            <div className="text-center text-muted-foreground pt-10">
+              Transcript will appear here...
+            </div>
           )}
           {transcripts.map((entry, index) => (
             <div
@@ -347,17 +349,17 @@ const ThaiMassageTutor: React.FC = () => {
               className={`flex items-start gap-3 ${entry.speaker === "user" ? "justify-end" : ""}`}
             >
               {entry.speaker === "model" && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-healing/20 text-healing flex items-center justify-center">
                   <Bot size={20} />
                 </div>
               )}
               <div
-                className={`max-w-xs lg:max-w-sm px-4 py-2 rounded-lg ${entry.speaker === "user" ? "bg-blue-600" : "bg-gray-700"}`}
+                className={`max-w-xs lg:max-w-sm px-4 py-2 rounded-lg ${entry.speaker === "user" ? "bg-primary/20" : "bg-muted/20"}`}
               >
                 <p className="text-sm">{entry.text}</p>
               </div>
               {entry.speaker === "user" && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center">
                   <User size={20} />
                 </div>
               )}
@@ -369,4 +371,4 @@ const ThaiMassageTutor: React.FC = () => {
   );
 };
 
-export default ThaiMassageTutor;
+export default AIStudioMassageTutor;
