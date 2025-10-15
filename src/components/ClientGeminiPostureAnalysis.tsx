@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useCallback, useRef } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,169 +14,362 @@ import {
   RotateCcw,
   Mic,
 } from "lucide-react";
-import { useMediaCapture } from "@/hooks/useMediaCapture";
-import { useGeminiSessionSecure } from "@/hooks/useGeminiSessionSecure";
-import { FacingMode } from "@/lib/media-utils";
+import { GoogleGenAI, Modality } from "@google/genai";
+import { geminiConfig } from "@/lib/config";
+import { massageTherapistPrompt } from "@/lib/system-prompts";
 
+// TODO: Add migrate this to server side when streaming is supported on Vercel deployment
 const ClientGeminiPostureAnalysis: React.FC = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [responseText, setResponseText] = useState<string>("");
+  const streamRef = useRef<MediaStream | null>(null);
+  const sessionRef = useRef<any>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const responseQueue = useRef<any[]>([]);
   const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const {
-    videoRef,
-    canvasRef,
-    audioContextRef,
-    isStreaming,
-    error: mediaError,
-    facingMode,
-    startCamera,
-    stopCamera,
-    captureFrame,
-    startAudioProcessing,
-    stopAudioProcessing,
-    cleanup: cleanupMedia,
-  } = useMediaCapture();
-
-  const {
-    isAnalyzing,
-    isConnecting,
-    error: sessionError,
-    responseText,
-    lastResponseTime,
-    responseCount,
-    handleTurnsOnce,
-    startSession,
-    stopSession,
-    sendInput,
-  } = useGeminiSessionSecure();
-
-  const error = mediaError || sessionError;
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
 
   useEffect(() => {
+    if (!geminiConfig.apiKey) {
+      setError(
+        "Gemini API key is not configured. Please set NEXT_PUBLIC_GEMINI_API_KEY in your environment variables."
+      );
+    }
     return () => {
+      if (sessionRef.current) {
+        sessionRef.current.close();
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
       if (captureIntervalRef.current) {
         clearInterval(captureIntervalRef.current);
       }
-      cleanupMedia();
-      stopSession();
-    };
-  }, [cleanupMedia, stopSession]);
-
-  const startCapturing = useCallback(() => {
-    if (captureIntervalRef.current) {
-      clearInterval(captureIntervalRef.current);
-    }
-
-    // Start frame capture interval
-    const sendFrameAndHandleTurns = async () => {
-      const base64Image = captureFrame();
-      if (base64Image) {
-        await sendInput({
-          image: { data: base64Image, mimeType: "image/jpeg" },
-        });
-        handleTurnsOnce(audioContextRef.current);
+      if (processorRef.current) {
+        processorRef.current.disconnect();
+      }
+      if (audioSourceRef.current) {
+        audioSourceRef.current.disconnect();
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
       }
     };
+  }, []);
 
-    // Initial capture
-    sendFrameAndHandleTurns();
+  const waitMessage = useCallback(async () => {
+    let done = false;
+    let message = undefined;
+    while (!done) {
+      message = responseQueue.current.shift();
+      if (message) {
+        done = true;
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+    return message;
+  }, []);
 
-    // Set up interval
-    captureIntervalRef.current = setInterval(sendFrameAndHandleTurns, 2000);
-  }, [captureFrame, sendInput, handleTurnsOnce, audioContextRef]);
+  const handleTurn = useCallback(async () => {
+    const turns = [];
+    let done = false;
+    while (!done && sessionRef.current) {
+      const message = await waitMessage();
+      turns.push(message);
 
-  const stopCapturing = useCallback(() => {
+      // Handle text response
+      if (message.text) {
+        console.log("📝 Text:", message.text);
+        setResponseText((prev) => prev + message.text);
+      }
+
+      // Handle audio response
+      if (message.data && audioContextRef.current) {
+        console.log("🔊 Audio data received");
+        try {
+          const buffer = Uint8Array.from(atob(message.data), (c) => c.charCodeAt(0));
+          const audioData = new Int16Array(buffer.buffer);
+
+          // Convert Int16Array to AudioBuffer
+          const audioBuffer = audioContextRef.current.createBuffer(1, audioData.length, 24000);
+          const channelData = audioBuffer.getChannelData(0);
+          for (let i = 0; i < audioData.length; i++) {
+            channelData[i] = audioData[i] / 32768.0;
+          }
+
+          // Play audio
+          const source = audioContextRef.current.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(audioContextRef.current.destination);
+          source.start(0);
+        } catch (e) {
+          console.error("Error playing audio:", e);
+        }
+      }
+
+      if (message.serverContent && message.serverContent.turnComplete) {
+        console.log("✅ Turn complete");
+        done = true;
+      }
+    }
+    return turns;
+  }, [waitMessage]);
+
+  const captureAndSendFrame = useCallback(async () => {
+    if (!videoRef.current || !canvasRef.current || !sessionRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    // Set canvas size to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw video frame to canvas
+    ctx.drawImage(video, 0, 0);
+
+    // Get image data as base64 JPEG
+    const base64Image = canvas.toDataURL("image/jpeg", 0.8).split(",")[1];
+
+    try {
+      console.log("📸 Sending image frame");
+      await sessionRef.current.sendRealtimeInput({
+        image: {
+          data: base64Image,
+          mimeType: "image/jpeg",
+        },
+      });
+    } catch (error) {
+      console.error("Error sending frame:", error);
+    }
+  }, []);
+
+  const startSession = async () => {
+    if (!geminiConfig.apiKey) {
+      setError("Gemini API key not found. Please configure it in your environment variables.");
+      return;
+    }
+    setIsConnecting(true);
+    setError("");
+    responseQueue.current = [];
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: geminiConfig.apiKey });
+      const model = geminiConfig.model;
+      const config = {
+        responseModalities: [Modality.AUDIO],
+        systemInstruction: massageTherapistPrompt,
+      };
+
+      console.log("🔵 Connecting to Gemini Live API...");
+
+      const session = await ai.live.connect({
+        model,
+        config,
+        callbacks: {
+          onopen: () => {
+            console.log("✅ Session Opened");
+            setIsAnalyzing(true);
+            setIsConnecting(false);
+
+            // Start sending frames every 2 seconds
+            captureIntervalRef.current = setInterval(() => {
+              captureAndSendFrame();
+              handleTurn();
+            }, 2000);
+
+            // Send initial frame
+            setTimeout(captureAndSendFrame, 500);
+          },
+          onmessage: (message: any) => {
+            console.log("📨 Message received:", message);
+            responseQueue.current.push(message);
+          },
+          onerror: (e: ErrorEvent) => {
+            console.error("❌ Session Error:", e);
+            setError(`Session error: ${e.message}`);
+            stopSession();
+          },
+          onclose: (e: CloseEvent) => {
+            console.log("🔴 Session Closed:", e.reason, "Code:", e.code);
+            stopSession();
+          },
+        },
+      });
+
+      sessionRef.current = session;
+      console.log("✅ Session reference stored");
+
+      // Start processing audio input
+      if (streamRef.current && audioContextRef.current) {
+        startAudioProcessing(streamRef.current);
+      }
+    } catch (e: any) {
+      console.error("❌ Failed to start session:", e);
+      setError(`Failed to start session: ${e.message}`);
+      setIsConnecting(false);
+      setIsAnalyzing(false);
+    }
+  };
+
+  const startAudioProcessing = (stream: MediaStream) => {
+    if (!audioContextRef.current) return;
+
+    try {
+      const audioTrack = stream.getAudioTracks()[0];
+      if (!audioTrack) {
+        console.warn("No audio track found");
+        return;
+      }
+
+      const audioStream = new MediaStream([audioTrack]);
+      audioSourceRef.current = audioContextRef.current.createMediaStreamSource(audioStream);
+
+      // Create processor for 16-bit PCM at 16kHz
+      processorRef.current = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+
+      processorRef.current.onaudioprocess = (e) => {
+        if (!sessionRef.current) return;
+
+        const inputData = e.inputBuffer.getChannelData(0);
+
+        // Convert float32 to int16 PCM
+        const int16Data = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          const s = Math.max(-1, Math.min(1, inputData[i]));
+          int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        }
+
+        // Convert to base64
+        const buffer = new Uint8Array(int16Data.buffer);
+        const base64Audio = btoa(String.fromCharCode(...buffer));
+
+        // Send audio chunk
+        try {
+          sessionRef.current.sendRealtimeInput({
+            audio: {
+              data: base64Audio,
+              mimeType: "audio/pcm;rate=16000",
+            },
+          });
+        } catch (err) {
+          console.error("Error sending audio:", err);
+        }
+      };
+
+      audioSourceRef.current.connect(processorRef.current);
+      processorRef.current.connect(audioContextRef.current.destination);
+
+      console.log("✅ Audio processing started");
+    } catch (error) {
+      console.error("Error starting audio processing:", error);
+    }
+  };
+
+  const stopSession = () => {
+    console.log("🛑 Stopping session...");
+
     if (captureIntervalRef.current) {
       clearInterval(captureIntervalRef.current);
       captureIntervalRef.current = null;
     }
-  }, []);
 
-  const handleSessionStart = useCallback(() => {
-    startCapturing();
-    if (isStreaming) {
-      startAudioProcessing((audioData: string) => {
-        sendInput({
-          audio: { data: audioData, mimeType: "audio/pcm;rate=16000" },
-        });
-      });
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
     }
-  }, [isStreaming, startAudioProcessing, sendInput, startCapturing]);
 
-  const beginAnalysis = useCallback(async () => {
-    await startSession(handleSessionStart);
-  }, [startSession, handleSessionStart]);
+    if (audioSourceRef.current) {
+      audioSourceRef.current.disconnect();
+      audioSourceRef.current = null;
+    }
 
-  const endAnalysis = useCallback(() => {
-    stopCapturing();
-    stopAudioProcessing();
-    stopSession();
-  }, [stopCapturing, stopAudioProcessing, stopSession]);
+    if (sessionRef.current) {
+      sessionRef.current.close();
+      sessionRef.current = null;
+    }
 
-  const switchCamera = useCallback(async () => {
-    if (!isStreaming) return;
+    setIsAnalyzing(false);
+    setIsConnecting(false);
+    setResponseText("");
+    responseQueue.current = [];
+  };
 
+  const startCamera = async (requestedFacingMode?: "user" | "environment") => {
     try {
-      const newMode: FacingMode = facingMode === "user" ? "environment" : "user";
-      const wasAnalyzing = isAnalyzing;
+      if (!videoRef.current) return;
 
-      console.log(`🔄 Switching camera from ${facingMode} to ${newMode}`);
+      const currentFacingMode = requestedFacingMode || facingMode;
 
-      // Completely stop everything if analyzing
-      if (wasAnalyzing) {
-        console.log("⏹️ Stopping analysis and session...");
-        stopCapturing();
-        stopAudioProcessing();
-        await stopSession();
-        // Wait for session to fully close
-        await new Promise((resolve) => setTimeout(resolve, 300));
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: currentFacingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: true,
+      });
+
+      streamRef.current = stream;
+      videoRef.current.srcObject = stream;
+      videoRef.current.play();
+      setIsStreaming(true);
+      setFacingMode(currentFacingMode);
+
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
+          sampleRate: 16000,
+        });
       }
 
-      // Stop current camera and all tracks
-      console.log("📷 Stopping current camera...");
-      stopCamera();
-
-      // Critical delay for mobile devices to release camera hardware
-      // Some devices need up to 1 second
-      console.log("⏳ Waiting for camera release...");
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Start new camera with different facing mode
-      console.log(`📷 Starting ${newMode} camera...`);
-      const stream = await startCamera(newMode);
-
-      if (!stream) {
-        throw new Error("Failed to start camera with new facing mode");
-      }
-
-      console.log("✅ Camera switched successfully");
-
-      // Wait for camera to stabilize
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Restart analysis if it was running
-      if (wasAnalyzing) {
-        console.log("▶️ Restarting analysis...");
-        await beginAnalysis();
-      }
+      console.log("✅ Camera started successfully");
     } catch (err: any) {
-      console.error("❌ Camera switch error:", err);
-      console.log(`🔙 Attempting to restart ${facingMode} camera...`);
-      // Wait before trying to restart
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Try to restart with original facing mode if switch failed
-      await startCamera(facingMode);
+      console.error("❌ Error accessing media devices:", err);
+      setError(`Camera/Mic access error: ${err.message}`);
     }
-  }, [
-    facingMode,
-    isStreaming,
-    isAnalyzing,
-    stopCamera,
-    startCamera,
-    beginAnalysis,
-    stopCapturing,
-    stopAudioProcessing,
-    stopSession,
-  ]);
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsStreaming(false);
+    stopSession();
+  };
+
+  const switchCamera = async () => {
+    if (!isStreaming) return;
+    const newFacingMode = facingMode === "user" ? "environment" : "user";
+    const wasAnalyzing = isAnalyzing;
+    stopCamera();
+    await startCamera(newFacingMode);
+    if (wasAnalyzing) {
+      setTimeout(() => startSession(), 500);
+    }
+  };
+
+  const toggleAnalysis = () => {
+    if (isAnalyzing) {
+      stopSession();
+    } else {
+      startSession();
+    }
+  };
 
   return (
     <div className="space-y-6 w-full flex flex-col items-center">
@@ -193,6 +386,7 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
             <div className="flex flex-wrap gap-2 justify-center">
               <Button
                 onClick={() => (isStreaming ? stopCamera() : startCamera())}
+                disabled={!geminiConfig.apiKey}
                 className={isStreaming ? "btn-destructive" : "btn-healing"}
                 style={{ minWidth: 120 }}
               >
@@ -221,9 +415,8 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Switch Camera
                   </Button>
-
                   <Button
-                    onClick={() => (isAnalyzing ? endAnalysis() : beginAnalysis())}
+                    onClick={toggleAnalysis}
                     variant={isAnalyzing ? "destructive" : "default"}
                     disabled={isConnecting}
                     style={{ minWidth: 120 }}
@@ -270,10 +463,6 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
 
           {isStreaming && isAnalyzing && responseText && (
             <div className="mt-4 p-4 bg-muted/10 rounded-lg border border-muted">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs text-muted-foreground">🤖 Model responding...</span>
-              </div>
               <div className="max-h-48 overflow-y-auto space-y-2 text-sm">
                 {responseText.split("\n").map((line, index) => (
                   <p key={index}>{line}</p>
@@ -283,52 +472,30 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
           )}
 
           {isStreaming && (
-            <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-center gap-4 flex-wrap">
-                <Badge
-                  className={
-                    isAnalyzing
-                      ? "bg-success/10 text-success border-success/20"
-                      : "bg-primary/10 text-primary border-primary/20"
-                  }
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      AI Analyzing
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      AI Ready
-                    </>
-                  )}
-                </Badge>
-                <Badge className="bg-healing/10 text-healing border-healing/20">
-                  <Mic className="h-4 w-4 mr-1" />
-                  Audio On
-                </Badge>
-              </div>
-
-              {/* Model Response Status */}
-              {responseCount > 0 && (
-                <div className="text-center">
-                  <div className="text-sm text-muted-foreground mb-2">🤖 Model Response Status</div>
-                  <div className="flex items-center justify-center gap-4 text-xs">
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      📊 Responses: {responseCount}
-                    </span>
-                    {lastResponseTime && (
-                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
-                        🕒 Last: {lastResponseTime.toLocaleTimeString()}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    Check browser console for detailed model responses
-                  </div>
-                </div>
-              )}
+            <div className="mt-4 flex items-center justify-center gap-4 flex-wrap">
+              <Badge
+                className={
+                  isAnalyzing
+                    ? "bg-success/10 text-success border-success/20"
+                    : "bg-primary/10 text-primary border-primary/20"
+                }
+              >
+                {isAnalyzing ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    AI Analyzing
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    AI Ready
+                  </>
+                )}
+              </Badge>
+              <Badge className="bg-healing/10 text-healing border-healing/20">
+                <Mic className="h-4 w-4 mr-1" />
+                Audio On
+              </Badge>
             </div>
           )}
         </CardContent>
