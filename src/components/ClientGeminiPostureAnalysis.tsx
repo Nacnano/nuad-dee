@@ -18,7 +18,7 @@ import { GoogleGenAI, Modality } from "@google/genai";
 import { geminiConfig } from "@/lib/config";
 import { massageTherapistPrompt } from "@/lib/system-prompts";
 
-// TODO: Add migrate this to server side when streaming is supported on Vercel deployment
+// TODO: Add migrate this to server side when ws streaming is supported on Vercel deployment
 const ClientGeminiPostureAnalysis: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
