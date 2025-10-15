@@ -7,7 +7,7 @@ import type { TranscriptEntry } from "@/types/transcript";
 import { decode, decodeAudioData, createPcmBlob } from "@/lib/audio-utils";
 import { massageTherapistPrompt } from "@/lib/system-prompts";
 
-const FRAME_RATE = 1; // Send 10 frames per second
+const FRAME_RATE = 1;
 const JPEG_QUALITY = 1;
 
 // Helper to convert a blob to a base64 string
