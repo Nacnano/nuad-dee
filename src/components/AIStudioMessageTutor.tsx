@@ -6,6 +6,7 @@ import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 import { Video, VideoOff, Mic, MicOff, RefreshCw, Bot, User, AlertTriangle } from "lucide-react";
 import type { TranscriptEntry } from "@/types/transcript";
 import { decode, decodeAudioData, createPcmBlob } from "@/lib/audio-utils";
+import { massageTherapistPrompt } from "@/lib/system-prompts";
 
 const FRAME_RATE = 10; // Send 10 frames per second
 const JPEG_QUALITY = 0.7;
@@ -136,8 +137,7 @@ const ThaiMassageTutor: React.FC = () => {
       sessionPromiseRef.current = ai.live.connect({
         model: "gemini-2.5-flash-native-audio-preview-09-2025",
         config: {
-          systemInstruction:
-            "You are an expert Thai massage instructor observing a student via live video. Provide clear, concise, and helpful instructions based on what you see and hear. Your tone is calm, encouraging, and professional. Correct their technique and guide them through proper massage steps. Respond with both audio and text.",
+          systemInstruction: massageTherapistPrompt,
           responseModalities: [Modality.AUDIO],
           inputAudioTranscription: {},
           outputAudioTranscription: {},
