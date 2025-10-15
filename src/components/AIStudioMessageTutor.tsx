@@ -217,7 +217,8 @@ const ThaiMassageTutor: React.FC = () => {
               currentOutputTranscriptionRef.current = "";
             }
 
-            const audioData = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+            const parts = message.serverContent?.modelTurn?.parts;
+            const audioData = parts && parts[0]?.inlineData?.data;
             if (audioData && audioContextsRef.current.output) {
               const outputContext = audioContextsRef.current.output;
               audioPlaybackRef.current.nextStartTime = Math.max(
