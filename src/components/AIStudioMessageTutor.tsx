@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-// FIX: Removed non-exported type 'LiveSession'.
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 import { Video, VideoOff, Mic, MicOff, RefreshCw, Bot, User, AlertTriangle } from "lucide-react";
 import type { TranscriptEntry } from "@/types/transcript";
 import { decode, decodeAudioData, createPcmBlob } from "@/lib/audio-utils";
 import { massageTherapistPrompt } from "@/lib/system-prompts";
 
-const FRAME_RATE = 10; // Send 10 frames per second
-const JPEG_QUALITY = 0.7;
+const FRAME_RATE = 1; // Send 10 frames per second
+const JPEG_QUALITY = 1;
 
 // Helper to convert a blob to a base64 string
 const blobToBase64 = (blob: Blob): Promise<string> => {
@@ -38,7 +37,6 @@ const ThaiMassageTutor: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  // FIX: Replaced non-exported type 'LiveSession' with 'any'.
   const sessionPromiseRef = useRef<Promise<any> | null>(null);
   const frameIntervalRef = useRef<number | null>(null);
 
