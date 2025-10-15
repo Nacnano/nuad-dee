@@ -1,3 +1,6 @@
+"use client";
+
+import ThaiMassageTutor from "@/components/AIStudioMessageTutor";
 import ClientGeminiPostureAnalysis from "@/components/ClientGeminiPostureAnalysis";
 import RealtimePostureAnalysis from "@/components/RealtimePostureAnalysis";
 import ServerGeminiPostureAnalysis from "@/components/ServerGeminiPostureAnalysis";
@@ -5,6 +8,8 @@ import ServerGeminiPostureAnalysis from "@/components/ServerGeminiPostureAnalysi
 export default function DemoPage() {
   return (
     <>
+      Client-side Message Tutor (Press start, and try speaking to it)
+      <ThaiMassageTutor />
       Client-side Gemini Demo (New, try speaking to it)
       <ClientGeminiPostureAnalysis />
       Server-side Gemini Demo (New, try speaking to it)

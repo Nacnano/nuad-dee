@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useRef, useCallback, useEffect } from "react";
 // FIX: Removed non-exported type 'LiveSession'.
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
@@ -101,7 +103,7 @@ const ThaiMassageTutor: React.FC = () => {
 
   const startSession = useCallback(async () => {
     setError(null);
-    if (!process.env.API_KEY) {
+    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
       setError("API_KEY environment variable not set.");
       return;
     }
