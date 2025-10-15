@@ -1,4 +1,4 @@
-import ClientGeminiPostureAnalysis from "@/components/ServerGeminiPostureAnalysis";
+import ClientGeminiPostureAnalysis from "@/components/ClientGeminiPostureAnalysis";
 import RealtimePostureAnalysis from "@/components/RealtimePostureAnalysis";
 import ServerGeminiPostureAnalysis from "@/components/ServerGeminiPostureAnalysis";
 
