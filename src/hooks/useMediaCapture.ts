@@ -76,7 +76,7 @@ export const useMediaCapture = () => {
       // Force a load to clear any pending operations
       videoRef.current.load();
     }
-    
+
     setIsStreaming(false);
     setError(""); // Clear any previous errors
   }, []);

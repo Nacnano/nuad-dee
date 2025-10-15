@@ -114,7 +114,7 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
 
   const switchCamera = useCallback(async () => {
     if (!isStreaming) return;
-    
+
     try {
       const newMode: FacingMode = facingMode === "user" ? "environment" : "user";
       const wasAnalyzing = isAnalyzing;
@@ -128,30 +128,30 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
         stopAudioProcessing();
         await stopSession();
         // Wait for session to fully close
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 300));
       }
 
       // Stop current camera and all tracks
       console.log("📷 Stopping current camera...");
       stopCamera();
-      
+
       // Critical delay for mobile devices to release camera hardware
       // Some devices need up to 1 second
       console.log("⏳ Waiting for camera release...");
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Start new camera with different facing mode
       console.log(`📷 Starting ${newMode} camera...`);
       const stream = await startCamera(newMode);
-      
+
       if (!stream) {
         throw new Error("Failed to start camera with new facing mode");
       }
 
       console.log("✅ Camera switched successfully");
-      
+
       // Wait for camera to stabilize
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Restart analysis if it was running
       if (wasAnalyzing) {
@@ -162,11 +162,21 @@ const ClientGeminiPostureAnalysis: React.FC = () => {
       console.error("❌ Camera switch error:", err);
       console.log(`🔙 Attempting to restart ${facingMode} camera...`);
       // Wait before trying to restart
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Try to restart with original facing mode if switch failed
       await startCamera(facingMode);
     }
-  }, [facingMode, isStreaming, isAnalyzing, stopCamera, startCamera, beginAnalysis, stopCapturing, stopAudioProcessing, stopSession]);
+  }, [
+    facingMode,
+    isStreaming,
+    isAnalyzing,
+    stopCamera,
+    startCamera,
+    beginAnalysis,
+    stopCapturing,
+    stopAudioProcessing,
+    stopSession,
+  ]);
 
   return (
     <div className="space-y-6 w-full flex flex-col items-center">

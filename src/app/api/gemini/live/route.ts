@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 
 // Force Node.js runtime (required for ws and buffer packages)
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 // Prevent static optimization
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 // Keep instance alive longer for session persistence (max 300s on Vercel Pro)
 export const maxDuration = 300;
 
@@ -143,7 +143,12 @@ async function handleSendInput(data: any) {
 
     const session = sessions.get(sessionId);
     if (!session) {
-      return NextResponse.json({ error: `Session ${sessionId} not found. Please create a new session or check the session ID.` }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: `Session ${sessionId} not found. Please create a new session or check the session ID.`,
+        },
+        { status: 404 }
+      );
     }
 
     await session.sendRealtimeInput(input);
