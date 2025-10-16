@@ -8,10 +8,10 @@ import ServerGeminiPostureAnalysis from "@/components/ServerGeminiPostureAnalysi
 export default function DemoPage() {
   return (
     <>
-      Client-side Message Tutor (Press Start Session, and try speaking to it)
+      {/* Client-side Message Tutor (Press Start Session, and try speaking to it) */}
       <AIStudioMassageTutor />
-      Skeleton Demo (Old, wait 5-10 seconds to load the skeleton model)
-      <RealtimePostureAnalysis />
+      {/* Skeleton Demo (Old, wait 5-10 seconds to load the skeleton model)
+      <RealtimePostureAnalysis /> */}
     </>
   );
 }
