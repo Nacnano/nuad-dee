@@ -1,18 +1,14 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 import { Video, VideoOff, Mic, MicOff, RefreshCw, Bot, User, AlertTriangle } from "lucide-react";
-import { GoogleGenAI, Modality } from "@google/genai";
+import type { TranscriptEntry } from "@/types/transcript";
+import { decode, decodeAudioData, createPcmBlob } from "@/lib/audio-utils";
 import { massageTherapistPrompt } from "@/lib/system-prompts";
 
 const FRAME_RATE = 1;
 const JPEG_QUALITY = 1;
-
-// Mock types for demonstration
-interface TranscriptEntry {
-  speaker: "user" | "model";
-  text: string;
-}
 
 // Helper to convert a blob to a base64 string
 const blobToBase64 = (blob: Blob): Promise<string> => {
@@ -30,7 +26,7 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
   });
 };
 
-const FixingTutor: React.FC = () => {
+const NoThinkingAIStudioMassageTutor: React.FC = () => {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
@@ -57,16 +53,6 @@ const FixingTutor: React.FC = () => {
     sources: Set<AudioBufferSourceNode>;
   }>({ nextStartTime: 0, sources: new Set() });
 
-  const stopMediaStream = useCallback(() => {
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-  }, []);
-
   const stopSession = useCallback(async () => {
     setStatusMessage("Stopping session...");
     setIsSessionActive(false);
@@ -77,7 +63,13 @@ const FixingTutor: React.FC = () => {
       frameIntervalRef.current = null;
     }
 
-    stopMediaStream();
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
 
     if (sessionPromiseRef.current) {
       try {
@@ -106,7 +98,7 @@ const FixingTutor: React.FC = () => {
 
     setTranscripts([]);
     setStatusMessage("Ready to start");
-  }, [stopMediaStream]);
+  }, []);
 
   const startSession = useCallback(async () => {
     setError(null);
@@ -131,8 +123,10 @@ const FixingTutor: React.FC = () => {
 
       const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
 
+      // FIX: Cast window to 'any' to allow 'webkitAudioContext' for browser compatibility.
       audioContextsRef.current.input = new (window.AudioContext ||
         (window as any).webkitAudioContext)({ sampleRate: 16000 });
+      // FIX: Cast window to 'any' to allow 'webkitAudioContext' for browser compatibility.
       audioContextsRef.current.output = new (window.AudioContext ||
         (window as any).webkitAudioContext)({ sampleRate: 24000 });
       audioPlaybackRef.current.nextStartTime = 0;
@@ -166,8 +160,7 @@ const FixingTutor: React.FC = () => {
 
             scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
               const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-              // Mock PCM blob creation
-              const pcmBlob = new Blob([inputData], { type: "audio/pcm" });
+              const pcmBlob = createPcmBlob(inputData);
               sessionPromiseRef.current?.then((session) => {
                 session.sendRealtimeInput({ media: pcmBlob });
               });
@@ -204,7 +197,7 @@ const FixingTutor: React.FC = () => {
               }, 1000 / FRAME_RATE);
             }
           },
-          onmessage: async (message: any) => {
+          onmessage: async (message: LiveServerMessage) => {
             if (message.serverContent?.outputTranscription) {
               currentOutputTranscriptionRef.current +=
                 message.serverContent.outputTranscription.text;
@@ -221,6 +214,28 @@ const FixingTutor: React.FC = () => {
                 setTranscripts((prev) => [...prev, { speaker: "model", text: fullOutput }]);
               currentInputTranscriptionRef.current = "";
               currentOutputTranscriptionRef.current = "";
+            }
+
+            const parts = message.serverContent?.modelTurn?.parts;
+            const audioData = parts && parts[0]?.inlineData?.data;
+            if (audioData && audioContextsRef.current.output) {
+              const outputContext = audioContextsRef.current.output;
+              audioPlaybackRef.current.nextStartTime = Math.max(
+                audioPlaybackRef.current.nextStartTime,
+                outputContext.currentTime
+              );
+
+              const audioBuffer = await decodeAudioData(decode(audioData), outputContext, 24000, 1);
+              const source = outputContext.createBufferSource();
+              source.buffer = audioBuffer;
+              source.connect(outputContext.destination);
+              source.addEventListener("ended", () => {
+                audioPlaybackRef.current.sources.delete(source);
+              });
+
+              source.start(audioPlaybackRef.current.nextStartTime);
+              audioPlaybackRef.current.nextStartTime += audioBuffer.duration;
+              audioPlaybackRef.current.sources.add(source);
             }
           },
           onerror: (e: ErrorEvent) => {
@@ -255,59 +270,40 @@ const FixingTutor: React.FC = () => {
   };
 
   const switchCamera = async () => {
-    if (isSessionActive) {
-      setStatusMessage("Switching camera...");
-      setError(null);
+    if (isSessionActive) return;
 
-      // Stop the current media stream first
-      stopMediaStream();
+    // Stop current stream before switching
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
 
-      // Wait a brief moment for the camera to be fully released
-      await new Promise((resolve) => setTimeout(resolve, 100));
+    setIsCameraOn(false);
 
-      // Toggle facing mode
-      const newFacingMode = facingMode === "user" ? "environment" : "user";
-      setFacingMode(newFacingMode);
+    // Toggle facing mode
+    const newFacingMode = facingMode === "user" ? "environment" : "user";
+    setFacingMode(newFacingMode);
 
-      try {
-        // Request new stream with new camera
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: { facingMode: newFacingMode },
-        });
+    // Wait a bit for the camera to be released
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
-        mediaStreamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-
-        // Reconnect audio processing to new stream
-        if (audioContextsRef.current.input) {
-          // Disconnect old audio source
-          audioContextsRef.current.scriptProcessor?.disconnect();
-          audioContextsRef.current.mediaStreamSource?.disconnect();
-
-          // Create new audio source from new stream
-          const source = audioContextsRef.current.input.createMediaStreamSource(stream);
-          audioContextsRef.current.mediaStreamSource = source;
-          const scriptProcessor = audioContextsRef.current.scriptProcessor;
-
-          if (scriptProcessor) {
-            source.connect(scriptProcessor);
-            scriptProcessor.connect(audioContextsRef.current.input.destination);
-          }
-        }
-
-        setStatusMessage("Connection open. Streaming media...");
-      } catch (err) {
-        console.error("Failed to switch camera:", err);
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        setError(`Failed to switch camera: ${errorMessage}`);
-        setStatusMessage("Camera switch failed");
+    // Start new stream with new facing mode
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: newFacingMode },
+      });
+      mediaStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
       }
-    } else {
-      // Just toggle the preference when not active
-      setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+      setIsCameraOn(true);
+    } catch (err) {
+      console.error("Failed to switch camera:", err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(`Failed to switch camera: ${errorMessage}`);
     }
   };
 
@@ -315,10 +311,11 @@ const FixingTutor: React.FC = () => {
     return () => {
       stopSession();
     };
-  }, [stopSession]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <div className="bg-gray-50 rounded-lg shadow-lg p-6 w-full flex flex-col md:flex-row gap-6 h-[80vh] border border-gray-200">
+    <div className="bg-muted/10 rounded-lg shadow-soft p-6 w-full flex flex-col md:flex-row gap-6 h-[80vh] border border-muted">
       <div className="w-full md:w-2/3 flex flex-col relative">
         <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
           <video
@@ -336,30 +333,26 @@ const FixingTutor: React.FC = () => {
             </div>
           )}
         </div>
-        <div className="flex items-center justify-between mt-4 p-2 bg-gray-100 rounded-lg">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="flex items-center justify-between mt-4 p-2 bg-muted/20 rounded-lg">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {isSessionActive ? (
-              <Mic size={16} className="text-green-500" />
+              <Mic size={16} className="text-success" />
             ) : (
-              <MicOff size={16} className="text-red-500" />
+              <MicOff size={16} className="text-destructive" />
             )}
             <span>{statusMessage}</span>
           </div>
           <div className="flex items-center gap-4">
             <button
               onClick={switchCamera}
-              className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
-              title={isSessionActive ? "Switch camera during session" : "Toggle camera preference"}
+              disabled={isSessionActive}
+              className="p-2 rounded-full bg-muted/30 hover:bg-muted/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <RefreshCw size={20} />
             </button>
             <button
               onClick={toggleSession}
-              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-colors ${
-                isSessionActive
-                  ? "bg-red-500 hover:bg-red-600 text-white"
-                  : "bg-blue-500 hover:bg-blue-600 text-white"
-              }`}
+              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-colors ${isSessionActive ? "bg-destructive hover:bg-destructive/90" : "btn-healing"}`}
             >
               {isSessionActive ? <VideoOff size={20} /> : <Video size={20} />}
               {isSessionActive ? "Stop Session" : "Start Session"}
@@ -367,19 +360,21 @@ const FixingTutor: React.FC = () => {
           </div>
         </div>
         {error && (
-          <div className="mt-2 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
+          <div className="mt-2 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg flex items-center gap-2">
             <AlertTriangle size={20} />
             <span>{error}</span>
           </div>
         )}
       </div>
-      <div className="w-full md:w-1/3 flex flex-col bg-white rounded-lg border border-gray-200">
-        <h2 className="text-lg font-semibold p-4 border-b border-gray-200 text-blue-600">
+      <div className="w-full md:w-1/3 flex flex-col bg-muted/10 rounded-lg border border-muted">
+        <h2 className="text-lg font-semibold p-4 border-b border-muted text-gradient-healing">
           Live Transcript
         </h2>
         <div className="flex-grow p-4 overflow-y-auto space-y-4">
           {transcripts.length === 0 && (
-            <div className="text-center text-gray-500 pt-10">Transcript will appear here...</div>
+            <div className="text-center text-muted-foreground pt-10">
+              Transcript will appear here...
+            </div>
           )}
           {transcripts.map((entry, index) => (
             <div
@@ -387,19 +382,17 @@ const FixingTutor: React.FC = () => {
               className={`flex items-start gap-3 ${entry.speaker === "user" ? "justify-end" : ""}`}
             >
               {entry.speaker === "model" && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-healing/20 text-healing flex items-center justify-center">
                   <Bot size={20} />
                 </div>
               )}
               <div
-                className={`max-w-xs lg:max-w-sm px-4 py-2 rounded-lg ${
-                  entry.speaker === "user" ? "bg-blue-500 text-white" : "bg-gray-100"
-                }`}
+                className={`max-w-xs lg:max-w-sm px-4 py-2 rounded-lg ${entry.speaker === "user" ? "bg-primary/20" : "bg-muted/20"}`}
               >
                 <p className="text-sm">{entry.text}</p>
               </div>
               {entry.speaker === "user" && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center">
                   <User size={20} />
                 </div>
               )}
@@ -411,4 +404,4 @@ const FixingTutor: React.FC = () => {
   );
 };
 
-export default FixingTutor;
+export default NoThinkingAIStudioMassageTutor;
