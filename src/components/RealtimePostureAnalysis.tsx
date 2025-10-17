@@ -20,12 +20,17 @@ interface PostureAnalysis {
   overallScore: number;
 }
 
+interface LoadingStatus {
+  stage: string;
+  progress: number;
+  message: string;
+}
+
 // Helper to get device screen size (not browser window size)
 function getDeviceScreenSize() {
   if (typeof window === "undefined") {
     return { width: 360, height: 640 };
   }
-  // Use screen.width/height for device, fallback to window.innerWidth/Height
   const width = window.screen && window.screen.width ? window.screen.width : window.innerWidth;
   const height = window.screen && window.screen.height ? window.screen.height : window.innerHeight;
   return { width, height };
@@ -33,14 +38,12 @@ function getDeviceScreenSize() {
 
 // Fixed camera area size for the component (responsive, but not overflowing)
 const CAMERA_MAX_WIDTH = 480;
-const CAMERA_ASPECT_RATIO = 4 / 3; // 4:3 aspect ratio for camera
+const CAMERA_ASPECT_RATIO = 4 / 3;
 
 const getCameraDimensions = () => {
-  // Use device width, but cap to CAMERA_MAX_WIDTH
   const device = getDeviceScreenSize();
   let width = Math.min(device.width, CAMERA_MAX_WIDTH);
   let height = Math.round(width / CAMERA_ASPECT_RATIO);
-  // If device is very short, adjust height
   if (height > device.height * 0.6) {
     height = Math.round(device.height * 0.6);
     width = Math.round(height * CAMERA_ASPECT_RATIO);
@@ -57,17 +60,20 @@ const RealtimePostureAnalysis: React.FC = () => {
   const [analysis, setAnalysis] = useState<PostureAnalysis | null>(null);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [loadingError, setLoadingError] = useState<string>("");
+  const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({
+    stage: "initializing",
+    progress: 0,
+    message: "Initializing...",
+  });
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const streamRef = useRef<MediaStream | null>(null);
   const animationRef = useRef<number>();
   const poseRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
 
-  // Use fixed camera area size for the component
   const [cameraSize, setCameraSize] = useState(getCameraDimensions());
 
   useEffect(() => {
-    // On mount, set to device screen size and listen for orientation changes
     const updateCameraSize = () => {
       setCameraSize(getCameraDimensions());
     };
@@ -86,9 +92,26 @@ const RealtimePostureAnalysis: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
 
+    // Add preconnect hints for faster loading
+    const addPreconnectHints = () => {
+      const cdnDomains = ["https://cdn.jsdelivr.net"];
+
+      cdnDomains.forEach((domain) => {
+        if (!document.querySelector(`link[href="${domain}"]`)) {
+          const link = document.createElement("link");
+          link.rel = "preconnect";
+          link.href = domain;
+          link.crossOrigin = "anonymous";
+          document.head.appendChild(link);
+        }
+      });
+    };
+
     const initializeMediaPipe = async () => {
       try {
-        const loadScript = (src: string): Promise<void> => {
+        addPreconnectHints();
+
+        const loadScript = (src: string, name: string): Promise<void> => {
           return new Promise((resolve, reject) => {
             if (document.querySelector(`script[src="${src}"]`)) {
               resolve();
@@ -97,48 +120,119 @@ const RealtimePostureAnalysis: React.FC = () => {
             const script = document.createElement("script");
             script.src = src;
             script.async = true;
+            script.crossOrigin = "anonymous";
             script.onload = () => resolve();
-            script.onerror = () => reject(new Error(`Failed to load ${src}`));
+            script.onerror = () => reject(new Error(`Failed to load ${name}`));
             document.head.appendChild(script);
           });
         };
 
-        setLoadingError("Loading MediaPipe libraries...");
+        // Stage 1: Load scripts in parallel
+        setLoadingStatus({
+          stage: "loading_scripts",
+          progress: 10,
+          message: "Loading MediaPipe libraries...",
+        });
 
-        await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js");
-        await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js");
-        await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js");
-        await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js");
+        const scripts = [
+          {
+            src: "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js",
+            name: "Camera Utils",
+          },
+          {
+            src: "https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js",
+            name: "Control Utils",
+          },
+          {
+            src: "https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js",
+            name: "Drawing Utils",
+          },
+          { src: "https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js", name: "Pose Model" },
+        ];
 
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Load all scripts in parallel for faster loading
+        await Promise.all(
+          scripts.map((script, index) => {
+            return loadScript(script.src, script.name).then(() => {
+              if (isMounted) {
+                setLoadingStatus({
+                  stage: "loading_scripts",
+                  progress: 10 + ((index + 1) / scripts.length) * 40,
+                  message: `Loaded ${script.name}...`,
+                });
+              }
+            });
+          })
+        );
 
+        // Stage 2: Wait for globals to be available
+        setLoadingStatus({
+          stage: "initializing",
+          progress: 55,
+          message: "Initializing pose detection...",
+        });
+
+        // Small delay to ensure scripts are fully initialized
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        if (!isMounted) return;
+
+        // Stage 3: Check if MediaPipe is available
         if (typeof window !== "undefined" && (window as any).Pose && (window as any).Camera) {
+          setLoadingStatus({
+            stage: "creating_model",
+            progress: 70,
+            message: "Creating pose model...",
+          });
+
           const pose = new (window as any).Pose({
             locateFile: (file: string) => {
               return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
             },
           });
 
+          setLoadingStatus({
+            stage: "configuring",
+            progress: 80,
+            message: "Configuring model settings...",
+          });
+
           pose.setOptions({
             modelComplexity: 1,
             smoothLandmarks: true,
             enableSegmentation: false,
-            smoothSegmentation: true,
+            smoothSegmentation: false,
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5,
           });
 
           pose.onResults(onPoseResults);
           poseRef.current = pose;
-          setIsModelLoaded(true);
-          setLoadingError("");
+
+          setLoadingStatus({
+            stage: "ready",
+            progress: 100,
+            message: "Model ready!",
+          });
+
+          if (isMounted) {
+            setIsModelLoaded(true);
+            setLoadingError("");
+          }
         } else {
           throw new Error("MediaPipe Pose or Camera not available");
         }
       } catch (error) {
         console.error("Failed to initialize MediaPipe:", error);
-        setLoadingError(`Failed to load MediaPipe: ${error}`);
-        setIsModelLoaded(true);
+        if (isMounted) {
+          setLoadingError(`Failed to load MediaPipe: ${error}`);
+          setLoadingStatus({
+            stage: "error",
+            progress: 0,
+            message: "Failed to load model",
+          });
+          setIsModelLoaded(false);
+        }
       }
     };
 
@@ -146,7 +240,6 @@ const RealtimePostureAnalysis: React.FC = () => {
 
     return () => {
       isMounted = false;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       const animationFrameId = animationRef.current;
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
@@ -159,7 +252,6 @@ const RealtimePostureAnalysis: React.FC = () => {
         cameraRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startCamera = async (requestedFacingMode?: "user" | "environment") => {
@@ -171,8 +263,6 @@ const RealtimePostureAnalysis: React.FC = () => {
       }
 
       const currentFacingMode = requestedFacingMode || facingMode;
-
-      // Use cameraSize for camera constraints
       let { width, height } = cameraSize;
 
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -239,7 +329,6 @@ const RealtimePostureAnalysis: React.FC = () => {
 
     const newFacingMode = facingMode === "user" ? "environment" : "user";
 
-    // Stop current camera
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -249,7 +338,6 @@ const RealtimePostureAnalysis: React.FC = () => {
       cameraRef.current = null;
     }
 
-    // Start camera with new facing mode
     await startCamera(newFacingMode);
   };
 
@@ -264,18 +352,18 @@ const RealtimePostureAnalysis: React.FC = () => {
       [11, 13],
       [13, 15],
       [12, 14],
-      [14, 16], // Arms
+      [14, 16],
       [11, 23],
       [12, 24],
-      [23, 24], // Torso
+      [23, 24],
       [23, 25],
       [25, 27],
       [27, 29],
-      [29, 31], // Left leg
+      [29, 31],
       [24, 26],
       [26, 28],
       [28, 30],
-      [30, 32], // Right leg
+      [30, 32],
     ];
 
     ctx.strokeStyle = "#00ff88";
@@ -291,7 +379,7 @@ const RealtimePostureAnalysis: React.FC = () => {
         (endPoint.visibility ?? 1) > 0.5
       ) {
         ctx.beginPath();
-        ctx.moveTo((1 - startPoint.x) * width, startPoint.y * height); // Mirror x coordinate
+        ctx.moveTo((1 - startPoint.x) * width, startPoint.y * height);
         ctx.lineTo((1 - endPoint.x) * width, endPoint.y * height);
         ctx.stroke();
       }
@@ -301,7 +389,7 @@ const RealtimePostureAnalysis: React.FC = () => {
       if ((landmark.visibility ?? 1) > 0.5) {
         ctx.fillStyle = getPointColor(index);
         ctx.beginPath();
-        ctx.arc((1 - landmark.x) * width, landmark.y * height, 6, 0, 2 * Math.PI); // Mirror x coordinate
+        ctx.arc((1 - landmark.x) * width, landmark.y * height, 6, 0, 2 * Math.PI);
         ctx.fill();
 
         ctx.strokeStyle = "#ffffff";
@@ -319,7 +407,6 @@ const RealtimePostureAnalysis: React.FC = () => {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // Always use the current cameraSize for canvas
       canvas.width = cameraSize.width;
       canvas.height = cameraSize.height;
 
@@ -343,16 +430,15 @@ const RealtimePostureAnalysis: React.FC = () => {
         setLandmarks([]);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isAnalyzing, cameraSize]
   );
 
   const getPointColor = (index: number): string => {
-    if ([11, 12].includes(index)) return "#ff6b6b"; // Shoulders - red
-    if ([13, 14, 15, 16].includes(index)) return "#4ecdc4"; // Arms - teal
-    if ([23, 24].includes(index)) return "#45b7d1"; // Hips - blue
-    if ([25, 26, 27, 28, 29, 30, 31, 32].includes(index)) return "#96ceb4"; // Legs - green
-    return "#ffeaa7"; // Other points - yellow
+    if ([11, 12].includes(index)) return "#ff6b6b";
+    if ([13, 14, 15, 16].includes(index)) return "#4ecdc4";
+    if ([23, 24].includes(index)) return "#45b7d1";
+    if ([25, 26, 27, 28, 29, 30, 31, 32].includes(index)) return "#96ceb4";
+    return "#ffeaa7";
   };
 
   const analyzePose = (landmarks: PoseLandmark[]): PostureAnalysis => {
@@ -433,7 +519,6 @@ const RealtimePostureAnalysis: React.FC = () => {
 
   return (
     <div className="space-y-6 w-full flex flex-col items-center">
-      {/* Camera Controls */}
       <Card className="border-0 shadow-soft w-full max-w-[500px]">
         <CardHeader>
           <CardTitle className="flex items-center text-gradient-healing">
@@ -492,11 +577,27 @@ const RealtimePostureAnalysis: React.FC = () => {
             )}
           </div>
 
-          {/* Loading/Error States */}
+          {/* Enhanced Loading States with Progress */}
           {!isModelLoaded && !loadingError && (
-            <div className="text-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-              <div className="text-sm text-muted-foreground">Loading MediaPipe Pose model...</div>
+            <div className="text-center py-6 px-4">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-primary" />
+              <div className="text-sm font-medium mb-2">{loadingStatus.message}</div>
+
+              {/* Progress Bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-3 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${loadingStatus.progress}%` }}
+                />
+              </div>
+
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  <span>{loadingStatus.stage.replace(/_/g, " ").toUpperCase()}</span>
+                </div>
+                <div>{Math.round(loadingStatus.progress)}% Complete</div>
+              </div>
             </div>
           )}
 
@@ -506,6 +607,19 @@ const RealtimePostureAnalysis: React.FC = () => {
               <div className="text-sm text-muted-foreground mb-2">{loadingError}</div>
               <div className="text-xs text-muted-foreground">
                 You can still use the camera for basic video, but pose detection may not work.
+              </div>
+            </div>
+          )}
+
+          {/* Model Ready Indicator */}
+          {isModelLoaded && !isStreaming && !loadingError && (
+            <div className="text-center py-4 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-200 dark:border-green-800 mb-4">
+              <CheckCircle className="h-6 w-6 text-green-600 mx-auto mb-2" />
+              <div className="text-sm font-medium text-green-700 dark:text-green-400">
+                AI Model Ready
+              </div>
+              <div className="text-xs text-green-600 dark:text-green-500 mt-1">
+                Click "Start Camera" to begin
               </div>
             </div>
           )}
@@ -526,7 +640,6 @@ const RealtimePostureAnalysis: React.FC = () => {
               margin: "0 auto",
             }}
           >
-            {/* Video Element */}
             <video
               ref={videoRef}
               autoPlay
@@ -540,12 +653,11 @@ const RealtimePostureAnalysis: React.FC = () => {
                 objectFit: "cover",
                 borderRadius: "0.5rem",
                 zIndex: 1,
-              }} // Mirror the video
+              }}
               width={cameraSize.width}
               height={cameraSize.height}
             />
 
-            {/* Canvas Overlay for Pose Detection */}
             <canvas
               ref={canvasRef}
               className="absolute top-0 left-0 w-full h-full"
@@ -559,7 +671,6 @@ const RealtimePostureAnalysis: React.FC = () => {
               height={cameraSize.height}
             />
 
-            {/* Placeholder when not streaming */}
             {!isStreaming && (
               <div className="absolute inset-0 flex items-center justify-center text-white bg-black/50 z-10">
                 <div className="text-center">
