@@ -2,6 +2,8 @@
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Video, VideoOff, Mic, MicOff, RefreshCw, Bot, User, AlertTriangle } from "lucide-react";
+import { GoogleGenAI, Modality } from "@google/genai";
+import { massageTherapistPrompt } from "@/lib/system-prompts";
 
 const FRAME_RATE = 1;
 const JPEG_QUALITY = 1;
@@ -127,24 +129,7 @@ const FixingTutor: React.FC = () => {
       setIsCameraOn(true);
       setStatusMessage("Initializing AI Tutor...");
 
-      // Mock AI initialization - replace with your actual GoogleGenAI code
-      const mockAI = {
-        live: {
-          connect: async (config: any) => {
-            // Simulate connection
-            setTimeout(() => {
-              if (config.callbacks.onopen) {
-                config.callbacks.onopen();
-              }
-            }, 500);
-
-            return {
-              sendRealtimeInput: (data: any) => {},
-              close: () => {},
-            };
-          },
-        },
-      };
+      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
 
       audioContextsRef.current.input = new (window.AudioContext ||
         (window as any).webkitAudioContext)({ sampleRate: 16000 });
@@ -153,11 +138,11 @@ const FixingTutor: React.FC = () => {
       audioPlaybackRef.current.nextStartTime = 0;
       audioPlaybackRef.current.sources.clear();
 
-      sessionPromiseRef.current = mockAI.live.connect({
+      sessionPromiseRef.current = ai.live.connect({
         model: "gemini-2.5-flash-native-audio-preview-09-2025",
         config: {
-          systemInstruction: "You are a helpful assistant",
-          responseModalities: ["AUDIO"],
+          systemInstruction: massageTherapistPrompt,
+          responseModalities: [Modality.AUDIO],
           inputAudioTranscription: {},
           outputAudioTranscription: {},
           thinkingConfig: { thinkingBudget: 0 },
