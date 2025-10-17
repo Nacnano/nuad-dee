@@ -13,8 +13,8 @@ export default function DemoPage() {
       <AIStudioMassageTutor />
       Thinking Mode Disabled
       <NoThinkingAIStudioMassageTutor />
-      {/* Skeleton Demo (Old, wait 5-10 seconds to load the skeleton model)
-      <RealtimePostureAnalysis /> */}
+      Skeleton Demo (Wait 5-10 seconds to load model)
+      <RealtimePostureAnalysis />
     </>
   );
 }
