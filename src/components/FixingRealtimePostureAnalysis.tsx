@@ -70,6 +70,7 @@ const RealtimePostureAnalysis: React.FC = () => {
   const animationRef = useRef<number>();
   const poseRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
+  const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
 
   const [cameraSize, setCameraSize] = useState(getCameraDimensions());
 
@@ -327,20 +328,52 @@ const RealtimePostureAnalysis: React.FC = () => {
   };
 
   const switchCamera = async () => {
-    if (!isStreaming) return;
+    if (!isStreaming || isSwitchingCamera) return;
 
+    setIsSwitchingCamera(true);
     const newFacingMode = facingMode === "user" ? "environment" : "user";
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (cameraRef.current) {
-      cameraRef.current.stop();
-      cameraRef.current = null;
-    }
+    try {
+      // Stop camera feed first
+      if (cameraRef.current) {
+        cameraRef.current.stop();
+        cameraRef.current = null;
+      }
 
-    await startCamera(newFacingMode);
+      // Stop all media tracks
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => {
+          track.stop();
+        });
+        streamRef.current = null;
+      }
+
+      // Clear video element
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        videoRef.current.load();
+      }
+
+      // Critical: Wait for camera hardware to fully release (especially on mobile)
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Now start the new camera
+      await startCamera(newFacingMode);
+    } catch (error) {
+      console.error("Error switching camera:", error);
+      setLoadingError(`Failed to switch camera: ${error}`);
+
+      // Try to restart with original facing mode if switch fails
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        await startCamera(facingMode);
+      } catch (retryError) {
+        console.error("Failed to restart camera:", retryError);
+        stopCamera();
+      }
+    } finally {
+      setIsSwitchingCamera(false);
+    }
   };
 
   const drawPoseLandmarks = (
