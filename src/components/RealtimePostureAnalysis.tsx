@@ -240,6 +240,7 @@ const RealtimePostureAnalysis: React.FC = () => {
 
     return () => {
       isMounted = false;
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       const animationFrameId = animationRef.current;
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
@@ -252,6 +253,7 @@ const RealtimePostureAnalysis: React.FC = () => {
         cameraRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startCamera = async (requestedFacingMode?: "user" | "environment") => {
@@ -430,6 +432,7 @@ const RealtimePostureAnalysis: React.FC = () => {
         setLandmarks([]);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isAnalyzing, cameraSize]
   );
 
@@ -619,7 +622,7 @@ const RealtimePostureAnalysis: React.FC = () => {
                 AI Model Ready
               </div>
               <div className="text-xs text-green-600 dark:text-green-500 mt-1">
-                Click "Start Camera" to begin
+                Click &quot;Start Camera&quot; to begin
               </div>
             </div>
           )}
