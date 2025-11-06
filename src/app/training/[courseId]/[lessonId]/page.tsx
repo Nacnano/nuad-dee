@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, CheckCircle, PlayCircle, AlertCircle, FileText, Eye } from "lucide-react";
-import ClientGeminiPostureAnalysis from "@/components/models/ServerGeminiPostureAnalysis";
+import ClientGeminiPostureAnalysis from "@/components/models/gemini/ServerGeminiPostureAnalysis";
 
 interface Lesson {
   id: string;
