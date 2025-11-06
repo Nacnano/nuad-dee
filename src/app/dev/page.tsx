@@ -1,7 +1,7 @@
 "use client";
 
-import FixingRealtimePostureAnalysis from "@/components/models/posture-analysis/FixingRealtimePostureAnalysis";
-import FixingTutor from "@/components/models/gemini/FixingTutor";
+import NoThinkingAIStudioMassageTutor from "@/components/models/gemini/NoThinkingAIStudioMassageTutor";
+import RealtimePostureAnalysis from "@/components/models/posture-analysis/RealtimePostureAnalysis";
 export default function DemoPage() {
   return (
     <>
@@ -9,8 +9,8 @@ export default function DemoPage() {
       {/* <AIStudioMassageTutor /> */}
       {/* Thinking Mode Disabled */}
       {/* Skeleton Demo (Wait 5-10 seconds to load model)*/}
-      <FixingTutor />
-      <FixingRealtimePostureAnalysis />
+      <NoThinkingAIStudioMassageTutor />
+      <RealtimePostureAnalysis />
     </>
   );
 }
