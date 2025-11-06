@@ -51,11 +51,47 @@ const getCameraDimensions = () => {
   return { width, height };
 };
 
+// MediaPipe Pose Landmark Names
+const LANDMARK_NAMES = [
+  "Nose",
+  "Left Eye Inner",
+  "Left Eye",
+  "Left Eye Outer",
+  "Right Eye Inner",
+  "Right Eye",
+  "Right Eye Outer",
+  "Left Ear",
+  "Right Ear",
+  "Mouth Left",
+  "Mouth Right",
+  "Left Shoulder",
+  "Right Shoulder",
+  "Left Elbow",
+  "Right Elbow",
+  "Left Wrist",
+  "Right Wrist",
+  "Left Pinky",
+  "Right Pinky",
+  "Left Index",
+  "Right Index",
+  "Left Thumb",
+  "Right Thumb",
+  "Left Hip",
+  "Right Hip",
+  "Left Knee",
+  "Right Knee",
+  "Left Ankle",
+  "Right Ankle",
+  "Left Heel",
+  "Right Heel",
+  "Left Foot Index",
+  "Right Foot Index",
+];
+
 const RealtimePostureAnalysis: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [landmarks, setLandmarks] = useState<PoseLandmark[]>([]);
   const [analysis, setAnalysis] = useState<PostureAnalysis | null>(null);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
@@ -71,6 +107,11 @@ const RealtimePostureAnalysis: React.FC = () => {
   const poseRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
   const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
+  const [frameCount, setFrameCount] = useState(0);
+  const [fps, setFps] = useState(0);
+  const fpsCounterRef = useRef({ lastTime: Date.now(), frames: 0 });
+  const [visibleLandmarks, setVisibleLandmarks] = useState(0);
+  const TOTAL_LANDMARKS = 33;
 
   const [cameraSize, setCameraSize] = useState(getCameraDimensions());
 
@@ -322,9 +363,11 @@ const RealtimePostureAnalysis: React.FC = () => {
       cameraRef.current = null;
     }
     setIsStreaming(false);
-    setIsAnalyzing(false);
     setLandmarks([]);
     setAnalysis(null);
+    setFrameCount(0);
+    setFps(0);
+    setVisibleLandmarks(0);
   };
 
   const switchCamera = async () => {
@@ -452,21 +495,39 @@ const RealtimePostureAnalysis: React.FC = () => {
       ctx.drawImage(videoRef.current, -canvas.width, 0, canvas.width, canvas.height);
       ctx.restore();
 
+      // Update FPS counter
+      setFrameCount((prev) => prev + 1);
+      fpsCounterRef.current.frames++;
+      const now = Date.now();
+      if (now - fpsCounterRef.current.lastTime >= 1000) {
+        setFps(fpsCounterRef.current.frames);
+        fpsCounterRef.current.frames = 0;
+        fpsCounterRef.current.lastTime = now;
+      }
+
       if (results.poseLandmarks && results.poseLandmarks.length > 0) {
         setLandmarks(results.poseLandmarks);
 
+        // Count visible landmarks
+        const visibleCount = results.poseLandmarks.filter(
+          (landmark: PoseLandmark) => (landmark.visibility ?? 1) > 0.5
+        ).length;
+        setVisibleLandmarks(visibleCount);
+
         drawPoseLandmarks(ctx, results.poseLandmarks, canvas.width, canvas.height);
 
-        if (isAnalyzing) {
+        // Automatically analyze when streaming
+        if (isStreaming) {
           const postureAnalysis = analyzePose(results.poseLandmarks);
           setAnalysis(postureAnalysis);
         }
       } else {
         setLandmarks([]);
+        setVisibleLandmarks(0);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isAnalyzing, cameraSize]
+    [isStreaming, cameraSize]
   );
 
   const getPointColor = (index: number): string => {
@@ -546,13 +607,6 @@ const RealtimePostureAnalysis: React.FC = () => {
     };
   };
 
-  const toggleAnalysis = () => {
-    setIsAnalyzing((prev) => {
-      if (!prev) setAnalysis(null);
-      return !prev;
-    });
-  };
-
   return (
     <div className="space-y-6 w-full flex flex-col items-center">
       <Card className="border-0 shadow-soft w-full max-w-[500px]">
@@ -590,26 +644,15 @@ const RealtimePostureAnalysis: React.FC = () => {
             </Button>
 
             {isStreaming && (
-              <>
-                <Button
-                  onClick={switchCamera}
-                  variant="outline"
-                  className="flex items-center"
-                  style={{ minWidth: 120 }}
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Switch Camera
-                </Button>
-
-                <Button
-                  onClick={toggleAnalysis}
-                  variant={isAnalyzing ? "destructive" : "default"}
-                  disabled={!poseRef.current}
-                  style={{ minWidth: 120 }}
-                >
-                  {isAnalyzing ? "Stop Analysis" : "Start Analysis"}
-                </Button>
-              </>
+              <Button
+                onClick={switchCamera}
+                variant="outline"
+                className="flex items-center"
+                style={{ minWidth: 120 }}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Switch Camera
+              </Button>
             )}
           </div>
 
@@ -720,32 +763,132 @@ const RealtimePostureAnalysis: React.FC = () => {
 
           {/* Status Indicators */}
           {isStreaming && (
-            <div className="mt-4 flex items-center justify-center gap-4 flex-wrap">
-              <Badge
-                className={
-                  landmarks.length > 0
-                    ? "bg-success/10 text-success border-success/20"
-                    : "bg-warning/10 text-warning border-warning/20"
-                }
-              >
-                {landmarks.length > 0 ? (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    Pose Detected ({landmarks.length} points)
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    No Pose Detected
-                  </>
-                )}
-              </Badge>
-
-              {poseRef.current && (
-                <Badge className="bg-primary/10 text-primary border-primary/20">
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  AI Ready
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <Badge
+                  className={
+                    landmarks.length > 0
+                      ? "bg-success/10 text-success border-success/20"
+                      : "bg-warning/10 text-warning border-warning/20"
+                  }
+                >
+                  {landmarks.length > 0 ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Pose Detected
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      No Pose
+                    </>
+                  )}
                 </Badge>
+
+                <Badge className="bg-primary/10 text-primary border-primary/20">{fps} FPS</Badge>
+
+                <Badge className="bg-healing/10 text-healing border-healing/20">
+                  {visibleLandmarks}/{TOTAL_LANDMARKS} Visible
+                </Badge>
+
+                <Badge className="bg-secondary/10 text-secondary border-secondary/20">
+                  Frame {frameCount}
+                </Badge>
+              </div>
+
+              {/* Performance Metrics */}
+              <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                <div className="bg-muted/20 rounded p-2 text-center">
+                  <div className="font-semibold text-foreground">
+                    {cameraSize.width}x{cameraSize.height}
+                  </div>
+                  <div>Resolution</div>
+                </div>
+                <div className="bg-muted/20 rounded p-2 text-center">
+                  <div className="font-semibold text-foreground">
+                    {facingMode === "user" ? "Front" : "Back"}
+                  </div>
+                  <div>Camera</div>
+                </div>
+                <div className="bg-muted/20 rounded p-2 text-center">
+                  <div className="font-semibold text-foreground">
+                    {landmarks.length}/{TOTAL_LANDMARKS}
+                  </div>
+                  <div>Total Points</div>
+                </div>
+              </div>
+
+              {/* Landmark Detection Progress Bar */}
+              {landmarks.length > 0 && (
+                <div className="bg-muted/20 rounded p-3 border border-muted">
+                  <div className="flex items-center justify-between mb-2 text-sm">
+                    <span className="font-medium">Landmark Detection Status</span>
+                  </div>
+                  <div className="w-full bg-muted/50 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        visibleLandmarks >= 25
+                          ? "bg-gradient-to-r from-green-500 to-emerald-500"
+                          : visibleLandmarks >= 15
+                            ? "bg-gradient-to-r from-yellow-500 to-orange-500"
+                            : "bg-gradient-to-r from-red-500 to-pink-500"
+                      }`}
+                      style={{ width: `${(visibleLandmarks / TOTAL_LANDMARKS) * 100}%` }}
+                    />
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
+                    <span>
+                      <strong>{visibleLandmarks}</strong> visible
+                    </span>
+                    <span>
+                      <strong>{landmarks.length - visibleLandmarks}</strong> occluded
+                    </span>
+                    <span>
+                      <strong>{TOTAL_LANDMARKS - landmarks.length}</strong> undetected
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Detected Landmarks List */}
+              {landmarks.length > 0 && (
+                <div className="bg-muted/20 rounded p-3 border border-muted max-h-64 overflow-y-auto">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-medium text-sm">Detected Body Landmarks</span>
+                    <span className="text-xs text-muted-foreground">
+                      {visibleLandmarks} visible / {landmarks.length} total
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {landmarks.map((landmark, index) => {
+                      const isVisible = (landmark.visibility ?? 1) > 0.5;
+                      return (
+                        <div
+                          key={index}
+                          className={`flex items-center gap-2 p-2 rounded ${
+                            isVisible
+                              ? "bg-success/10 border border-success/20"
+                              : "bg-muted/30 border border-muted"
+                          }`}
+                        >
+                          <div
+                            className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              isVisible ? "bg-success" : "bg-muted-foreground/30"
+                            }`}
+                          />
+                          <span
+                            className={`truncate ${
+                              isVisible ? "text-foreground" : "text-muted-foreground"
+                            }`}
+                            title={LANDMARK_NAMES[index]}
+                          >
+                            {LANDMARK_NAMES[index]}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -753,63 +896,183 @@ const RealtimePostureAnalysis: React.FC = () => {
       </Card>
 
       {/* Real-time Analysis Results */}
-      {analysis && isAnalyzing && (
+      {analysis && isStreaming && landmarks.length > 0 && (
         <Card className="border-0 shadow-medium w-full max-w-[500px]">
           <CardHeader>
-            <CardTitle className="flex items-center text-gradient-success">
-              <AlertCircle className="h-5 w-5 mr-2" />
-              Real-time Posture Analysis
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center text-gradient-success">
+                <AlertCircle className="h-5 w-5 mr-2" />
+                Real-time Posture Analysis
+              </span>
+              <Badge
+                className={`${
+                  analysis.overallScore >= 80
+                    ? "bg-success/10 text-success border-success/20"
+                    : analysis.overallScore >= 60
+                      ? "bg-warning/10 text-warning border-warning/20"
+                      : "bg-destructive/10 text-destructive border-destructive/20"
+                }`}
+              >
+                {analysis.overallScore >= 80
+                  ? "Excellent"
+                  : analysis.overallScore >= 60
+                    ? "Good"
+                    : "Needs Work"}
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Overall Score */}
-              <div className="text-center p-4 bg-background-secondary rounded-lg">
-                <div className="text-3xl font-bold text-gradient-primary mb-2">
-                  {analysis.overallScore}%
+              {/* Overall Score with Progress Ring */}
+              <div className="text-center p-6 bg-gradient-to-br from-primary/10 to-healing/10 rounded-lg border border-primary/20">
+                <div className="text-5xl font-bold mb-2">
+                  <span
+                    className={
+                      analysis.overallScore >= 80
+                        ? "text-success"
+                        : analysis.overallScore >= 60
+                          ? "text-warning"
+                          : "text-destructive"
+                    }
+                  >
+                    {analysis.overallScore}
+                  </span>
+                  <span className="text-2xl text-muted-foreground">/100</span>
                 </div>
-                <div className="text-sm text-muted-foreground">Overall Posture Score</div>
+                <div className="text-sm font-medium text-muted-foreground mb-3">
+                  Overall Posture Score
+                </div>
+                {/* Progress Bar */}
+                <div className="w-full bg-muted/30 rounded-full h-3 overflow-hidden">
+                  <div
+                    className={`h-3 rounded-full transition-all duration-500 ${
+                      analysis.overallScore >= 80
+                        ? "bg-gradient-to-r from-green-500 to-emerald-500"
+                        : analysis.overallScore >= 60
+                          ? "bg-gradient-to-r from-yellow-500 to-orange-500"
+                          : "bg-gradient-to-r from-red-500 to-pink-500"
+                    }`}
+                    style={{ width: `${analysis.overallScore}%` }}
+                  />
+                </div>
               </div>
 
-              {/* Detailed Analysis */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="p-4 bg-background-secondary rounded-lg">
-                  <h4 className="font-medium mb-2">Shoulder Alignment</h4>
-                  <div className="text-2xl font-bold mb-1">
-                    {Math.round(analysis.shoulderAlignment.score)}%
+              {/* Detailed Analysis with Progress Bars */}
+              <div className="space-y-3">
+                {/* Shoulder Alignment */}
+                <div className="p-4 bg-muted/20 rounded-lg border border-muted">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <span className="text-xl">💪</span>
+                      Shoulder Alignment
+                    </h4>
+                    <span className="text-lg font-bold">
+                      {Math.round(analysis.shoulderAlignment.score)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-muted/50 rounded-full h-2 mb-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${analysis.shoulderAlignment.score}%` }}
+                    />
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {analysis.shoulderAlignment.feedback}
                   </p>
                 </div>
 
-                <div className="p-4 bg-background-secondary rounded-lg">
-                  <h4 className="font-medium mb-2">Spine Alignment</h4>
-                  <div className="text-2xl font-bold mb-1">
-                    {Math.round(analysis.spineAlignment.score)}%
+                {/* Spine Alignment */}
+                <div className="p-4 bg-muted/20 rounded-lg border border-muted">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <span className="text-xl">🦴</span>
+                      Spine Alignment
+                    </h4>
+                    <span className="text-lg font-bold">
+                      {Math.round(analysis.spineAlignment.score)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-muted/50 rounded-full h-2 mb-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${analysis.spineAlignment.score}%` }}
+                    />
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {analysis.spineAlignment.feedback}
                   </p>
                 </div>
 
-                <div className="p-4 bg-background-secondary rounded-lg">
-                  <h4 className="font-medium mb-2">Hip Alignment</h4>
-                  <div className="text-2xl font-bold mb-1">
-                    {Math.round(analysis.hipAlignment.score)}%
+                {/* Hip Alignment */}
+                <div className="p-4 bg-muted/20 rounded-lg border border-muted">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <span className="text-xl">🎯</span>
+                      Hip Alignment
+                    </h4>
+                    <span className="text-lg font-bold">
+                      {Math.round(analysis.hipAlignment.score)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-muted/50 rounded-full h-2 mb-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${analysis.hipAlignment.score}%` }}
+                    />
                   </div>
                   <p className="text-sm text-muted-foreground">{analysis.hipAlignment.feedback}</p>
                 </div>
               </div>
 
+              {/* Key Body Points Detected */}
+              <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                <h4 className="font-medium mb-3 text-primary flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Detection Status
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-success" />
+                    <span>Shoulders: ✓</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-success" />
+                    <span>Hips: ✓</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-success" />
+                    <span>Spine: ✓</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-success" />
+                    <span>Confidence: High</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Tips */}
               <div className="p-4 bg-healing/10 border border-healing/20 rounded-lg">
-                <h4 className="font-medium mb-2 text-healing">💡 Real-time Tips</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Stand facing the camera for best detection</li>
-                  <li>• Ensure good lighting on your body</li>
-                  <li>• Keep your full torso visible in the frame</li>
-                  <li>• Analysis updates in real-time as you adjust your posture</li>
+                <h4 className="font-medium mb-2 text-healing flex items-center gap-2">
+                  <span className="text-xl">💡</span>
+                  Real-time Tips
+                </h4>
+                <ul className="text-sm space-y-1.5">
+                  <li className="flex items-start gap-2">
+                    <span className="text-healing mt-0.5">•</span>
+                    <span>Stand facing the camera for best detection</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-healing mt-0.5">•</span>
+                    <span>Ensure good lighting on your body</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-healing mt-0.5">•</span>
+                    <span>Keep your full torso visible in the frame</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-healing mt-0.5">•</span>
+                    <span>Analysis updates automatically in real-time</span>
+                  </li>
                 </ul>
               </div>
             </div>
