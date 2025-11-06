@@ -13,13 +13,6 @@ interface PoseLandmark {
   visibility?: number;
 }
 
-interface PostureAnalysis {
-  shoulderAlignment: { score: number; feedback: string };
-  spineAlignment: { score: number; feedback: string };
-  hipAlignment: { score: number; feedback: string };
-  overallScore: number;
-}
-
 interface LoadingStatus {
   stage: string;
   progress: number;
@@ -93,7 +86,6 @@ const RealtimePostureAnalysis: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [landmarks, setLandmarks] = useState<PoseLandmark[]>([]);
-  const [analysis, setAnalysis] = useState<PostureAnalysis | null>(null);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [loadingError, setLoadingError] = useState<string>("");
   const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({
@@ -364,7 +356,6 @@ const RealtimePostureAnalysis: React.FC = () => {
     }
     setIsStreaming(false);
     setLandmarks([]);
-    setAnalysis(null);
     setFrameCount(0);
     setFps(0);
     setVisibleLandmarks(0);
@@ -515,12 +506,6 @@ const RealtimePostureAnalysis: React.FC = () => {
         setVisibleLandmarks(visibleCount);
 
         drawPoseLandmarks(ctx, results.poseLandmarks, canvas.width, canvas.height);
-
-        // Automatically analyze when streaming
-        if (isStreaming) {
-          const postureAnalysis = analyzePose(results.poseLandmarks);
-          setAnalysis(postureAnalysis);
-        }
       } else {
         setLandmarks([]);
         setVisibleLandmarks(0);
@@ -536,75 +521,6 @@ const RealtimePostureAnalysis: React.FC = () => {
     if ([23, 24].includes(index)) return "#45b7d1";
     if ([25, 26, 27, 28, 29, 30, 31, 32].includes(index)) return "#96ceb4";
     return "#ffeaa7";
-  };
-
-  const analyzePose = (landmarks: PoseLandmark[]): PostureAnalysis => {
-    if (!landmarks || landmarks.length < 33) {
-      return {
-        shoulderAlignment: { score: 0, feedback: "Unable to detect pose" },
-        spineAlignment: { score: 0, feedback: "Unable to detect pose" },
-        hipAlignment: { score: 0, feedback: "Unable to detect pose" },
-        overallScore: 0,
-      };
-    }
-
-    const leftShoulder = landmarks[11];
-    const rightShoulder = landmarks[12];
-    const leftHip = landmarks[23];
-    const rightHip = landmarks[24];
-
-    const shoulderHeightDiff = Math.abs(leftShoulder.y - rightShoulder.y);
-    const shoulderScore = Math.max(0, 100 - shoulderHeightDiff * 1000);
-
-    const midShoulder = {
-      x: (leftShoulder.x + rightShoulder.x) / 2,
-      y: (leftShoulder.y + rightShoulder.y) / 2,
-    };
-    const midHip = {
-      x: (leftHip.x + rightHip.x) / 2,
-      y: (leftHip.y + rightHip.y) / 2,
-    };
-
-    const spineAngle = Math.abs(
-      Math.atan2(midShoulder.y - midHip.y, midShoulder.x - midHip.x) - Math.PI / 2
-    );
-    const spineScore = Math.max(0, 100 - spineAngle * 100);
-
-    const hipHeightDiff = Math.abs(leftHip.y - rightHip.y);
-    const hipScore = Math.max(0, 100 - hipHeightDiff * 1000);
-
-    const overallScore = (shoulderScore + spineScore + hipScore) / 3;
-
-    return {
-      shoulderAlignment: {
-        score: shoulderScore,
-        feedback:
-          shoulderScore > 80
-            ? "Excellent shoulder alignment!"
-            : shoulderScore > 60
-              ? "Good alignment, minor adjustments needed"
-              : "Adjust shoulder position for better alignment",
-      },
-      spineAlignment: {
-        score: spineScore,
-        feedback:
-          spineScore > 80
-            ? "Great spinal posture!"
-            : spineScore > 60
-              ? "Good posture, keep spine straight"
-              : "Focus on keeping your spine neutral",
-      },
-      hipAlignment: {
-        score: hipScore,
-        feedback:
-          hipScore > 80
-            ? "Perfect hip alignment!"
-            : hipScore > 60
-              ? "Good hip position"
-              : "Adjust hip positioning for better balance",
-      },
-      overallScore: Math.round(overallScore),
-    };
   };
 
   return (
@@ -894,191 +810,6 @@ const RealtimePostureAnalysis: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Real-time Analysis Results */}
-      {analysis && isStreaming && landmarks.length > 0 && (
-        <Card className="border-0 shadow-medium w-full max-w-[500px]">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center text-gradient-success">
-                <AlertCircle className="h-5 w-5 mr-2" />
-                Real-time Posture Analysis
-              </span>
-              <Badge
-                className={`${
-                  analysis.overallScore >= 80
-                    ? "bg-success/10 text-success border-success/20"
-                    : analysis.overallScore >= 60
-                      ? "bg-warning/10 text-warning border-warning/20"
-                      : "bg-destructive/10 text-destructive border-destructive/20"
-                }`}
-              >
-                {analysis.overallScore >= 80
-                  ? "Excellent"
-                  : analysis.overallScore >= 60
-                    ? "Good"
-                    : "Needs Work"}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Overall Score with Progress Ring */}
-              <div className="text-center p-6 bg-gradient-to-br from-primary/10 to-healing/10 rounded-lg border border-primary/20">
-                <div className="text-5xl font-bold mb-2">
-                  <span
-                    className={
-                      analysis.overallScore >= 80
-                        ? "text-success"
-                        : analysis.overallScore >= 60
-                          ? "text-warning"
-                          : "text-destructive"
-                    }
-                  >
-                    {analysis.overallScore}
-                  </span>
-                  <span className="text-2xl text-muted-foreground">/100</span>
-                </div>
-                <div className="text-sm font-medium text-muted-foreground mb-3">
-                  Overall Posture Score
-                </div>
-                {/* Progress Bar */}
-                <div className="w-full bg-muted/30 rounded-full h-3 overflow-hidden">
-                  <div
-                    className={`h-3 rounded-full transition-all duration-500 ${
-                      analysis.overallScore >= 80
-                        ? "bg-gradient-to-r from-green-500 to-emerald-500"
-                        : analysis.overallScore >= 60
-                          ? "bg-gradient-to-r from-yellow-500 to-orange-500"
-                          : "bg-gradient-to-r from-red-500 to-pink-500"
-                    }`}
-                    style={{ width: `${analysis.overallScore}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Detailed Analysis with Progress Bars */}
-              <div className="space-y-3">
-                {/* Shoulder Alignment */}
-                <div className="p-4 bg-muted/20 rounded-lg border border-muted">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold flex items-center gap-2">
-                      <span className="text-xl">💪</span>
-                      Shoulder Alignment
-                    </h4>
-                    <span className="text-lg font-bold">
-                      {Math.round(analysis.shoulderAlignment.score)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted/50 rounded-full h-2 mb-2 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${analysis.shoulderAlignment.score}%` }}
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {analysis.shoulderAlignment.feedback}
-                  </p>
-                </div>
-
-                {/* Spine Alignment */}
-                <div className="p-4 bg-muted/20 rounded-lg border border-muted">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold flex items-center gap-2">
-                      <span className="text-xl">🦴</span>
-                      Spine Alignment
-                    </h4>
-                    <span className="text-lg font-bold">
-                      {Math.round(analysis.spineAlignment.score)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted/50 rounded-full h-2 mb-2 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${analysis.spineAlignment.score}%` }}
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {analysis.spineAlignment.feedback}
-                  </p>
-                </div>
-
-                {/* Hip Alignment */}
-                <div className="p-4 bg-muted/20 rounded-lg border border-muted">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold flex items-center gap-2">
-                      <span className="text-xl">🎯</span>
-                      Hip Alignment
-                    </h4>
-                    <span className="text-lg font-bold">
-                      {Math.round(analysis.hipAlignment.score)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted/50 rounded-full h-2 mb-2 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${analysis.hipAlignment.score}%` }}
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground">{analysis.hipAlignment.feedback}</p>
-                </div>
-              </div>
-
-              {/* Key Body Points Detected */}
-              <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                <h4 className="font-medium mb-3 text-primary flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  Detection Status
-                </h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-success" />
-                    <span>Shoulders: ✓</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-success" />
-                    <span>Hips: ✓</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-success" />
-                    <span>Spine: ✓</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-success" />
-                    <span>Confidence: High</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tips */}
-              <div className="p-4 bg-healing/10 border border-healing/20 rounded-lg">
-                <h4 className="font-medium mb-2 text-healing flex items-center gap-2">
-                  <span className="text-xl">💡</span>
-                  Real-time Tips
-                </h4>
-                <ul className="text-sm space-y-1.5">
-                  <li className="flex items-start gap-2">
-                    <span className="text-healing mt-0.5">•</span>
-                    <span>Stand facing the camera for best detection</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-healing mt-0.5">•</span>
-                    <span>Ensure good lighting on your body</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-healing mt-0.5">•</span>
-                    <span>Keep your full torso visible in the frame</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-healing mt-0.5">•</span>
-                    <span>Analysis updates automatically in real-time</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
