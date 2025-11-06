@@ -523,12 +523,6 @@ const RealtimePostureAnalysis: React.FC = () => {
   return (
     <div className="space-y-6 w-full flex flex-col items-center">
       <Card className="border-0 shadow-soft w-full max-w-[500px]">
-        <CardHeader>
-          <CardTitle className="flex items-center text-gradient-healing">
-            <Camera className="h-5 w-5 mr-2" />
-            Real-time Posture Analysis
-          </CardTitle>
-        </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2 mb-4 justify-center">
             <Button
