@@ -1,7 +1,7 @@
 "use client";
 
-import NoThinkingAIStudioMassageTutorEnglish from "@/components/NoThinkingAIStudioMassageTutorEnglish";
-import RealtimePostureAnalysis from "@/components/RealtimePostureAnalysis";
+import NoThinkingAIStudioMassageTutorEnglish from "@/components/models/NoThinkingAIStudioMassageTutorEnglish";
+import RealtimePostureAnalysis from "@/components/models/RealtimePostureAnalysis";
 import { Badge } from "@/components/ui/badge";
 
 export default function DemoEnglishPage() {

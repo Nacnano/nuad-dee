@@ -1,7 +1,7 @@
 "use client";
 
-import FixingRealtimePostureAnalysis from "@/components/FixingRealtimePostureAnalysis";
-import FixingTutor from "@/components/FixingTutor";
+import FixingRealtimePostureAnalysis from "@/components/models/FixingRealtimePostureAnalysis";
+import FixingTutor from "@/components/models/FixingTutor";
 export default function DemoPage() {
   return (
     <>
