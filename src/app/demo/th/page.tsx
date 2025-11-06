@@ -1,7 +1,7 @@
 "use client";
 
 import NoThinkingAIStudioMassageTutor from "@/components/models/gemini/NoThinkingAIStudioMassageTutor";
-import RealtimePostureAnalysis from "@/components/models/posture-analysis/RealtimePostureAnalysis";
+import FixingRealtimePostureAnalysis from "@/components/models/posture-analysis/FixingRealtimePostureAnalysis";
 import { Badge } from "@/components/ui/badge";
 
 export default function DemoThaiPage() {
@@ -30,7 +30,7 @@ export default function DemoThaiPage() {
           <h2 className="text-2xl font-semibold flex items-center gap-2">
             การวิเคราะห์ท่าทางแบบเรียลไทม์
           </h2>
-          <RealtimePostureAnalysis />
+          <FixingRealtimePostureAnalysis />
         </div>
       </div>
     </div>

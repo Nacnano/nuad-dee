@@ -1,7 +1,7 @@
 "use client";
 
 import NoThinkingAIStudioMassageTutorEnglish from "@/components/models/gemini/NoThinkingAIStudioMassageTutorEnglish";
-import RealtimePostureAnalysis from "@/components/models/posture-analysis/RealtimePostureAnalysis";
+import FixingRealtimePostureAnalysis from "@/components/models/posture-analysis/FixingRealtimePostureAnalysis";
 import { Badge } from "@/components/ui/badge";
 
 export default function DemoEnglishPage() {
@@ -34,7 +34,7 @@ export default function DemoEnglishPage() {
           <h2 className="text-2xl font-semibold flex items-center gap-2">
             Real-time Posture Analysis
           </h2>
-          <RealtimePostureAnalysis />
+          <FixingRealtimePostureAnalysis />
         </div>
       </div>
     </div>

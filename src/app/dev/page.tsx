@@ -8,8 +8,7 @@ export default function DemoPage() {
       {/* Client-side Message Tutor (Press Start Session, and try speaking to it) */}
       {/* <AIStudioMassageTutor /> */}
       {/* Thinking Mode Disabled */}
-      {/* Skeleton Demo (Wait 5-10 seconds to load model)
-      <RealtimePostureAnalysis /> */}
+      {/* Skeleton Demo (Wait 5-10 seconds to load model)*/}
       <FixingTutor />
       <FixingRealtimePostureAnalysis />
     </>

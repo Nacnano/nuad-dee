@@ -51,7 +51,7 @@ const getCameraDimensions = () => {
   return { width, height };
 };
 
-const RealtimePostureAnalysis: React.FC = () => {
+const FixingRealtimePostureAnalysis: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -820,4 +820,4 @@ const RealtimePostureAnalysis: React.FC = () => {
   );
 };
 
-export default RealtimePostureAnalysis;
+export default FixingRealtimePostureAnalysis;
