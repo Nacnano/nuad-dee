@@ -25,23 +25,23 @@ export default function DemoPage() {
         {/* Language Options */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Thai Version */}
-          <Card className="hover:shadow-lg transition-shadow border-healing/20 hover:border-healing/40">
+          <Card className="hover:shadow-lg transition-shadow border-healing/20 hover:border-healing/40 flex flex-col">
             <CardHeader>
               <div className="flex items-center gap-3 mb-2">
-                <CardTitle className="text-2xl text-gradient-healing">Thai Version</CardTitle>
+                <CardTitle className="text-2xl text-gradient-healing">เวอร์ชันภาษาไทย</CardTitle>
               </div>
               <CardDescription className="text-base">
                 ระบบสอนการนวดไทยด้วย AI สำหรับผู้พิการทางสายตา
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>✅ Thai language instruction</p>
-                <p>✅ Voice guidance in Thai</p>
-                <p>✅ Cultural context included</p>
-                <p>✅ Real-time posture analysis</p>
+            <CardContent className="flex-grow flex flex-col">
+              <div className="space-y-2 text-sm text-muted-foreground flex-grow">
+                <p>✅ คำแนะนำเป็นภาษาไทย</p>
+                <p>✅ เสียงแนะนำเป็นภาษาไทย</p>
+                <p>✅ รวมบริบททางวัฒนธรรม</p>
+                <p>✅ วิเคราะห์ท่าทางแบบเรียลไทม์</p>
               </div>
-              <Button asChild className="w-full btn-healing group">
+              <Button asChild className="w-full btn-healing group mt-6">
                 <Link href="/demo/th">
                   เริ่มต้นใช้งาน
                   <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -51,7 +51,7 @@ export default function DemoPage() {
           </Card>
 
           {/* English Version */}
-          <Card className="hover:shadow-lg transition-shadow border-primary/20 hover:border-primary/40">
+          <Card className="hover:shadow-lg transition-shadow border-primary/20 hover:border-primary/40 flex flex-col">
             <CardHeader>
               <div className="flex items-center gap-3 mb-2">
                 <CardTitle className="text-2xl text-gradient-primary">English Version</CardTitle>
@@ -60,14 +60,14 @@ export default function DemoPage() {
                 AI-Powered Thai Massage Training for Visually Impaired Students
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2 text-sm text-muted-foreground">
+            <CardContent className="flex-grow flex flex-col">
+              <div className="space-y-2 text-sm text-muted-foreground flex-grow">
                 <p>✅ English language instruction</p>
                 <p>✅ Voice guidance in English</p>
                 <p>✅ International accessibility</p>
                 <p>✅ Real-time posture analysis</p>
               </div>
-              <Button asChild className="w-full btn-primary group">
+              <Button asChild className="w-full btn-primary group mt-6">
                 <Link href="/demo/en">
                   Get Started
                   <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
